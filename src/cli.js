@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+var path = require('path')
 var express = require('express')
 var app = express()
 var dafuq = require('./')
@@ -18,6 +19,10 @@ var argv = require('yargs')
     .help('help')
     .alias('help', 'h')
     .argv;
+
+// Resolve full path when executing via CLI
+if (require.main === module)
+    argv.commands = path.resolve(process.pwd(), argv.commands)
 
 app.use(dafuq({
 	path: argv.commands,
