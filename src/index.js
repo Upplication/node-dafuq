@@ -27,15 +27,15 @@ const moduleName = 'dafuq'
  * @throws {AssertionError} If the path is not a directory
  */
 function assertIsDirectory(path) {
-	let dirStats;
-	try {
-		assert(fs.statSync(path).isDirectory(), `path ${path} is not a directory`)
-	} catch(e) {
-		const msg = `path ${path} does not exists or doesn't have proper permissions`
-		debug(msg)
-		assert(false, msg)
-	}
-	return path
+    let dirStats;
+    try {
+        assert(fs.statSync(path).isDirectory(), `path ${path} is not a directory`)
+    } catch(e) {
+        const msg = `path ${path} does not exists or doesn't have proper permissions`
+        debug(msg)
+        assert(false, msg)
+    }
+    return path
 }
 
 /**
@@ -52,11 +52,11 @@ const globPattern = '**/+(all|get|post|put|delete|head|options).*'
  * @return {DafuqPath[]} All the files that mattched the pattern at the given dir
  */
 function findFilesAt(dir, pattern) {
-	return glob.sync(path.join(dir, pattern), { nocase: true })
-		.map(p => ({
-			absolute: p,
-			relative: path.relative(dir, p)
-		}))
+    return glob.sync(path.join(dir, pattern), { nocase: true })
+        .map(p => ({
+            absolute: p,
+            relative: path.relative(dir, p)
+        }))
 }
 
 /**
@@ -72,14 +72,14 @@ const MASK_EXEC = parseInt('0100', 8)
  * @return {Boolean}     true if the path is executable, false otherwise
  */
 function isExecutable(path) {
-	let isExe
-	try {
-		const stats = fs.statSync(path.absolute)
-		isExe = !!(stats.mode & MASK_EXEC)
-	} catch(e) { isExe = false }
-	if (!isExe)
-		debug(`${ path.absolute } is not executable, ignoring`)
-	return isExe
+    let isExe
+    try {
+        const stats = fs.statSync(path.absolute)
+        isExe = !!(stats.mode & MASK_EXEC)
+    } catch(e) { isExe = false }
+    if (!isExe)
+        debug(`${ path.absolute } is not executable, ignoring`)
+    return isExe
 }
 
 /**
@@ -95,7 +95,7 @@ function isExecutable(path) {
  * * The content of strderr if it is not empty
  * * The content of stdout if it is not empty
  * * The error message if the error was reported while using
- * 	node's `child_process.exec`
+ *  node's `child_process.exec`
  *
  * Finally, once the output is determined, we try to parse it as json. If
  * successful and the parsed JSON contains the success property the output
@@ -111,130 +111,130 @@ function isExecutable(path) {
  *                        only argument
  */
 function execCommand(command, cb) {
-	child_process.exec(command, function(err, stdout, stderr) {
-		const code = err && err.code ? err.code : 0
-		let result =  stderr || stdout || (err || {}).message
-		if (result)
-			result = result.trim()
-		try {
-			// Try to parse it as JSON
-			const json = JSON.parse(result)
-			result = json
-		} catch(e) {
-			// If an error occurs parsing the json, treat it as a string
-			result = { result: result }
-		}
+    child_process.exec(command, function(err, stdout, stderr) {
+        const code = err && err.code ? err.code : 0
+        let result =  stderr || stdout || (err || {}).message
+        if (result)
+            result = result.trim()
+        try {
+            // Try to parse it as JSON
+            const json = JSON.parse(result)
+            result = json
+        } catch(e) {
+            // If an error occurs parsing the json, treat it as a string
+            result = { result: result }
+        }
 
-		// If the result doesnt contain the field success, treat its
-		// contents as the result part and add the succes field
-		if (result.success === undefined) {
-			result = {
-				success: code === 0,
-				result: result
-			}
-		}
+        // If the result doesnt contain the field success, treat its
+        // contents as the result part and add the succes field
+        if (result.success === undefined) {
+            result = {
+                success: code === 0,
+                result: result
+            }
+        }
 
-		cb(result)
-	})
+        cb(result)
+    })
 }
 
 function dafuq(opts) {
 
-	debug('Building dafuq instance with %j', opts)
-	// Allow constructor to be only the commands directory
-	if (typeof opts === 'string')
-		opts = { path: path }
+    debug('Building dafuq instance with %j', opts)
+    // Allow constructor to be only the commands directory
+    if (typeof opts === 'string')
+        opts = { path: path }
 
-	// Assign default values
-	opts = Object.assign({
-		shebang: '',
-		intercept: () => {}
-	}, opts)
+    // Assign default values
+    opts = Object.assign({
+        shebang: '',
+        intercept: () => {}
+    }, opts)
 
-	// Options validation
+    // Options validation
 
-	// Valid string path is mandatory
-	if (!opts.path || typeof opts.path !== 'string' || opts.path.length == 0)
-		throw new TypeError('path must be a string pointing to the commands directory')
+    // Valid string path is mandatory
+    if (!opts.path || typeof opts.path !== 'string' || opts.path.length == 0)
+        throw new TypeError('path must be a string pointing to the commands directory')
 
-	// If shebang provided, but not valid
-	if (opts.shebang && (typeof opts.shebang !== 'string' || opts.shebang.length == 0))
-		throw new TypeError('shebang must be a non empty string')
+    // If shebang provided, but not valid
+    if (opts.shebang && (typeof opts.shebang !== 'string' || opts.shebang.length == 0))
+        throw new TypeError('shebang must be a non empty string')
 
-	// If intercept provided, but not valid
-	if (opts.intercept && (typeof opts.intercept !== 'function'))
-		throw new TypeError('intercept must be a function')
+    // If intercept provided, but not valid
+    if (opts.intercept && (typeof opts.intercept !== 'function'))
+        throw new TypeError('intercept must be a function')
 
-	// Build an absolute path to the commands directory and assert it is actually a directory
-	const commandsPath = path.resolve(path.dirname(module.parent.filename), opts.path)
-	assertIsDirectory(commandsPath)
+    // Build an absolute path to the commands directory and assert it is actually a directory
+    const commandsPath = path.resolve(path.dirname(module.parent.filename), opts.path)
+    assertIsDirectory(commandsPath)
 
-	// Find the files to be mounted as execution points
-	let files = findFilesAt(commandsPath, globPattern)
+    // Find the files to be mounted as execution points
+    let files = findFilesAt(commandsPath, globPattern)
 
-	// If no shebang is specified, the file need to be executable by itself
-	if (!opts.shebang)
-		files = files.filter(isExecutable)
+    // If no shebang is specified, the file need to be executable by itself
+    if (!opts.shebang)
+        files = files.filter(isExecutable)
 
-	const app = express()
-	app.use(bodyParser.urlencoded({ extended: false }))
-	app.use(bodyParser.json())
+    const app = express()
+    app.use(bodyParser.urlencoded({ extended: false }))
+    app.use(bodyParser.json())
 
-	/**
-	 * Returns a middleware that once inkoed will execute the specified file and
-	 * put the result of its execution on response object in the property pointed
-	 * by moduleName.
-	 *
-	 * @param {String} file
-	 */
-	function executionMiddleware(file) {
-		return (req, res, next) => {
-			// Build the base command
-			let cmd = file
-			if (opts.shebang)
-				cmd = `${ opts.shebang } ${ cmd }`
+    /**
+     * Returns a middleware that once inkoed will execute the specified file and
+     * put the result of its execution on response object in the property pointed
+     * by moduleName.
+     *
+     * @param {String} file
+     */
+    function executionMiddleware(file) {
+        return (req, res, next) => {
+            // Build the base command
+            let cmd = file
+            if (opts.shebang)
+                cmd = `${ opts.shebang } ${ cmd }`
 
-			// Append all the parameters provided via query, params and body to the cmd
-			// as cli configuration flags
-			const flags = Object.assign({}, req.query, req.params, req.body)
-			Object.keys(flags).forEach(function(flagName) {
-				const flagValue = flags[flagName]
-				cmd += ` --${flagName}`
-				if (flagValue)
-					cmd += ` ${flagValue}`
-			})
+            // Append all the parameters provided via query, params and body to the cmd
+            // as cli configuration flags
+            const flags = Object.assign({}, req.query, req.params, req.body)
+            Object.keys(flags).forEach(function(flagName) {
+                const flagValue = flags[flagName]
+                cmd += ` --${flagName}`
+                if (flagValue)
+                    cmd += ` ${flagValue}`
+            })
 
-			debug(`$ ${cmd}`)
-			execCommand(cmd, result => {
-				Object.defineProperty(res, moduleName, { value: result })
-				next()
-			})
-		}
-	}
+            debug(`$ ${cmd}`)
+            execCommand(cmd, result => {
+                Object.defineProperty(res, moduleName, { value: result })
+                next()
+            })
+        }
+    }
 
-	// Add all the files routes
-	files.forEach(file => {
-		const filePath = file.relative
-		const url = '/' + path.dirname(file.relative)
-		const method = path.basename(filePath, path.extname(filePath))
-		const middleware = executionMiddleware(file.absolute)
-		debug(`Adding ${ method } ${ url }`)
-		app[method](url, middleware)
-	})
+    // Add all the files routes
+    files.forEach(file => {
+        const filePath = file.relative
+        const url = '/' + path.dirname(file.relative)
+        const method = path.basename(filePath, path.extname(filePath))
+        const middleware = executionMiddleware(file.absolute)
+        debug(`Adding ${ method } ${ url }`)
+        app[method](url, middleware)
+    })
 
-	// Allow library clients to do something with the responses rather
-	// than the default behaviour
-	opts.intercept(app)
+    // Allow library clients to do something with the responses rather
+    // than the default behaviour
+    opts.intercept(app)
 
-	// Fallback behaviour, send the result as json
-	app.all('*', (req, res, next) => {
-		if (res[moduleName])
-			res.type('json').json(res[moduleName])
-		else
-			res.status(404).send()
-		next()
-	})
-	return app
+    // Fallback behaviour, send the result as json
+    app.all('*', (req, res, next) => {
+        if (res[moduleName])
+            res.type('json').json(res[moduleName])
+        else
+            res.status(404).send()
+        next()
+    })
+    return app
 }
 
 module.exports = dafuq

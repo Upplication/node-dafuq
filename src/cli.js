@@ -5,7 +5,7 @@ var app = express()
 var dafuq = require('./')
 
 var argv = require('yargs')
-	.usage('$0 Leverages command-based api')
+    .usage('$0 Leverages command-based api')
     .describe('commands', 'the path to commands directory')
     .alias('commands', 'c')
     .alias('commands', 'path')
@@ -25,7 +25,7 @@ if (require.main === module)
     argv.commands = path.resolve(process.pwd(), argv.commands)
 
 app.use(dafuq({
-	path: argv.commands,
-	shebang: argv.shebang
+    path: argv.commands,
+    shebang: argv.shebang
 }))
 app.listen(argv.port)
