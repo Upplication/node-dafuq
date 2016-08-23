@@ -98,9 +98,13 @@ function isExecutable(path) {
  * 	node's `child_process.exec`
  *
  * Finally, once the output is determined, we try to parse it as json. If
- * successful, the parsed json will be merged with the previous result
- * (that contains the success value). If the json parsing of the output fails
- * the output will be inserted on a `result` property.
+ * successful and the parsed JSON contains the success property the output
+ * just generated will be treated as the result of the command execution.
+ * If the JSON was correctly parsed but didn't contain any success field, the
+ * result will be an object containing `success` and `result`, being result
+ * the just parsed JSON.
+ * If the output string couldn't be parsed as JSON, the result field will be
+ * directly the string.
  *
  * @param  {String}   cmd Command to be executed via `child_process.exec`
  * @param  {Function} cb  Completion callback. The result object is passed as
@@ -121,7 +125,16 @@ function execCommand(command, cb) {
 			result = { result: result }
 		}
 
-		cb(Object.assign({ success: code === 0 }, result))
+		// If the result doesnt contain the field success, treat its
+		// contents as the result part and add the succes field
+		if (result.success === undefined) {
+			result = {
+				success: code === 0,
+				result: result
+			}
+		}
+
+		cb(result)
 	})
 }
 
