@@ -1,11 +1,13 @@
 'use strict'
 
 const fs = require('fs')
+  ,   os = require('os')
   ,   path = require('path')
   ,   assert = require('assert')
   ,   child_process = require('child_process')
   ,   glob = require('glob')
   ,   express = require('express')
+  ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
 
 const resResultProperty = 'dafuq_result'
@@ -105,6 +107,7 @@ const HEADER_X_ARG_REGEX = /^x-arg-(.*)$/i
  *  * Query Params
  *  * URL params
  *  * Body members
+ *  * Multipart uploaded files
  *
  * @param  {Object} req - express request object
  * @return {String} The command options string
@@ -120,7 +123,13 @@ function buildCommandFlags(req) {
         return headers
     }, {})
 
-    const flags = Object.assign({}, headerFlags, req.query, req.params, req.body)
+    // Build files
+    const uploadFlags = (req.files || []).reduce((files, file) => {
+        files[file.fieldname] = file.path
+        return files
+    }, {})
+
+    const flags = Object.assign({}, headerFlags, req.query, req.params, req.body, uploadFlags)
     Object.keys(flags).forEach(function(flagName) {
         const flagValue = flags[flagName]
         cmdFlags += ` --${flagName}`
@@ -246,6 +255,8 @@ function dafuq(config) {
     }
 
     const app = express()
+    const upload = multer({ dest: os.tmpdir() })
+
     app.use(bodyParser.urlencoded({ extended: false }))
     app.use(bodyParser.json())
 
@@ -284,13 +295,16 @@ function dafuq(config) {
     files.forEach(file => {
         const filePath = file.relative
         const url = '/' + path.dirname(file.relative)
-        const method = path.basename(filePath, path.extname(filePath))
+        const method = path.basename(filePath, path.extname(filePath)).toLowerCase()
         const middleware = executionMiddleware(file.absolute)
         opts.debug(`Adding ${ method } ${ url }`)
-        app[method](url, middleware)
+        if (method === 'get' || method === 'head' || method === 'options')
+            app[method](url, middleware)
+        else
+            app[method](url, upload.any(), middleware)
     })
 
-    // Fallback behaviour, send the result as json
+    // Fallback behaviour, send the result
     app.all('*', (req, res, next) => {
         if (res[resTypeProperty] === RESULT_TYPE_OBJECT)
             res.type('json').json(res[resResultProperty])

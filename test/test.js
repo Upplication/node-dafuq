@@ -2,6 +2,7 @@
 
 require('should');
 const p = require('path')
+const fs = require('fs')
 const request = require('supertest');
 const dafuq = require('../src');
 
@@ -96,6 +97,17 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Disposition', /attachment/)
                 .expect(res => res.text.should.not.be.empty())
+                .end(done)
+        })
+
+        it('should upload a file and pass its path to the command', (done) => {
+            request(app)
+                .post('/multipart')
+                .attach('file', __filename)
+                .expect(200)
+                .expect(res => {
+                    res.body.result.should.be.equal(fs.readFileSync(__filename, 'utf-8').trim())
+                })
                 .end(done)
         })
 

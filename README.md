@@ -4,6 +4,8 @@ A cli commands based API.
 
 dafuq allows you to create an api that executes files on the os command line (via `child_process.exec`) and returns the output generated through a JSON API.
 
+![dafuq?](http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg)
+
 ## Motivation
 Ok, so you just discovered a really neat tool/library but... *oh, oh* its written in **THAT LANGUAGE**. All your dreams of api-fing that thing just blew up because you just wanted to run a little few commands here and there.
 
@@ -28,7 +30,7 @@ commands/
 ```
 
 **As express middleware**
-```
+```js
 var express = require('express')
  ,  dafuq = require('dafuq')
 
@@ -66,18 +68,31 @@ On init, dafuq searches for all the files named like an http method (with extens
 Then, any request that reaches the server and matches one of the directories and method will trigger an execution of the file and return its output.
 
 ### Command arguments/parameters
-Dafuq translates any parameter (query params, body contents, url params and `x-arg` headers) on the request to command line flags with double dash `--`, meaning that a request as follows:
+Dafuq translates any parameter on the request to command line flags with double dash `--`. The request fields searched for parmeters and its override order is as follows (upper means it will prevail in case of name clashing):
+* Multipart files
+* Multipart form fields
+* Body fields
+* URL params: (parts of the url that start with `:`)
+* Query Params
+* Headers: (the ones starting with `X-Arg-`)
+
 ```
 POST /hello/john?age=12&male HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 100
 X-Arg-username: jhon78
 
-secondName=wick&profession=killer
+surname=wick&profession=killer
 ```
-would match against the route `/hello/:name` and translate into the following command
+would be equivalent to the following command
 ```
-./hello/\:name/get.sh --name john --age 12 --male --secondName wick --profession killer
+'./hello/:name/get.sh' \
+	--name john \
+	--surname wick \
+	--username username \
+	--age 12 \
+	--male \
+	--profession killer
 ```
 
 ### Building the resposne
@@ -85,9 +100,9 @@ If the exit code of the command was different from 0 it will be taken as unsucce
 
 When a command is run the output will be determined by this steps:
 * If the output of the command is a JSON
-** and contains a success property: the whole content is considered the final response that will be sent, ignoring the previous
+  * and contains a success property: the whole content is considered the final response that will be sent, ignoring the previous
 	success value.
-** and doesn't contain a success property: The output will be placed in a `result` property in an object that also contains the
+  * and doesn't contain a success property: The output will be placed in a `result` property in an object that also contains the
 	previous success value.
 * If the output of the command is NOT a JSON: The output will be placed in a `result` property in an object that also contains the
 previous success value.
