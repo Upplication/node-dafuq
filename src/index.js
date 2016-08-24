@@ -8,6 +8,9 @@ const fs = require('fs')
   ,   express = require('express')
   ,   bodyParser = require('body-parser')
 
+const resResultProperty = 'dafuq_result'
+const resTypeProperty = 'dafuq_type'
+
 /**
  * @typedef DafuqPath
  * @type {object}
@@ -16,7 +19,18 @@ const fs = require('fs')
  *                             but relative to the invoking script
  */
 
-const moduleName = 'dafuq'
+/**
+ * Exit code that determines a file response should be used instead of JSON
+ * @type {Number}
+ */
+const EXIT_CODE_FILE = 10
+
+/**
+ * Result types when executing a command
+ * @type {String}
+ */
+const RESULT_TYPE_OBJECT = 'object'
+const RESULT_TYPE_FILE = 'file'
 
 /**
  * Asserts the provided **absolute** path is a directory
@@ -142,33 +156,38 @@ function buildCommandFlags(req) {
  * directly the string.
  *
  * @param  {String}   cmd Command to be executed via `child_process.exec`
- * @param  {Function} cb  Completion callback. The result object is passed as
- *                        only argument
+ * @param  {Function} cb  Completion callback. The result object and the
+ *                        the result type are pased as arguments
  */
 function execCommand(command, cb) {
     child_process.exec(command, function(err, stdout, stderr) {
         const code = err && err.code ? err.code : 0
         let result =  stderr || stdout || (err || {}).message
+        let type = RESULT_TYPE_OBJECT
 
         if (result)
             result = result.trim()
 
-        try {
-            // Try to parse it as JSON
-            const json = JSON.parse(result)
-            result = json
-        } catch(e) {} // If an error occurs parsing the json leave it as it was
+        if (code === EXIT_CODE_FILE) {
+            type = RESULT_TYPE_FILE
+        } else {
+            try {
+                // Try to parse it as JSON
+                const json = JSON.parse(result)
+                result = json
+            } catch(e) {} // If an error occurs parsing the json leave it as it was
 
-        // If the result doesn't contain the field success, treat its
-        // contents as the result part and add the succes field
-        if (result.success === undefined) {
-            result = {
-                success: code === 0,
-                result: result
+            // If the result doesn't contain the field success, treat its
+            // contents as the result part and add the succes field
+            if (result.success === undefined) {
+                result = {
+                    success: code === 0,
+                    result: result
+                }
             }
         }
 
-        cb(result)
+        cb(result, type)
     })
 }
 
@@ -253,8 +272,9 @@ function dafuq(config) {
             cmd += buildCommandFlags(req)
 
             opts.debug(`$ ${cmd}`)
-            execCommand(cmd, result => {
-                Object.defineProperty(res, moduleName, { value: result })
+            execCommand(cmd, (result, type) => {
+                Object.defineProperty(res, resResultProperty, { value: result })
+                Object.defineProperty(res, resTypeProperty, { value: type })
                 next()
             })
         }
@@ -272,12 +292,14 @@ function dafuq(config) {
 
     // Fallback behaviour, send the result as json
     app.all('*', (req, res, next) => {
-        if (res[moduleName])
-            res.type('json').json(res[moduleName])
+        if (res[resTypeProperty] === RESULT_TYPE_OBJECT)
+            res.type('json').json(res[resResultProperty])
+        else if (res[resTypeProperty] === RESULT_TYPE_FILE)
+            res.download(res[resResultProperty])
         else
             res.status(404).send()
-        next()
     })
+
     return app
 }
 

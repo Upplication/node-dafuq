@@ -90,6 +90,15 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
+        it('should return a download file when file exits with code 10', (done) => {
+            request(app)
+                .get('/download')
+                .expect(200)
+                .expect('Content-Disposition', /attachment/)
+                .expect(res => res.text.should.not.be.empty())
+                .end(done)
+        })
+
         it('should not create a route when a file doesn\'t have execute permissions', (done) => {
             request(app)
                 .get('/no-exec')
@@ -150,6 +159,15 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .expect(res => res.body.result.should.be.equal('Bye World'))
+                .end(done)
+        })
+
+        it('should return a download file when file exits with code 10', (done) => {
+            request(app)
+                .get('/download')
+                .expect(200)
+                .expect('Content-Disposition', /attachment/)
+                .expect(res => res.text.should.not.be.empty())
                 .end(done)
         })
 
