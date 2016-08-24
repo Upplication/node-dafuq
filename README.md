@@ -1,4 +1,5 @@
 # dafuq?
+
 [![Build Status](https://travis-ci.org/Upplication/node-dafuq.svg?branch=master)](https://travis-ci.org/Upplication/node-dafuq)
 [![npm version](https://badge.fury.io/js/dafuq.svg)](https://badge.fury.io/js/dafuq)
 
@@ -8,12 +9,14 @@ dafuq allows you to create an api that executes files on the os command line (vi
 
 ![dafuq?](http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg)
 
-## Motivation
-Ok, so you just discovered a really neat tool/library but... *oh, oh* its written in **THAT LANGUAGE**. All your dreams of api-fing that thing just blew up because you just wanted to run a little few commands here and there.
+## dafuq(opts)
 
-This recently happened at @Upplication, and **that language** happened to be ruby. It's not that we don't like ruby, it's just we dont have anyone on the team who can or have the time and motivation to start learning about it *properly*. So we decided to implement this kind of solution.
+### Options
+* **commands**: Path where to look for commands to run on requests.
+* **shebang** (optional): If specified, this will be the command line interpreter to be used when running the file. If it is not specified we will check the file for execution permisions and run it by itself. Defaults to ''.
+* **debug** (optional): Show debug info. If true, `console.log` will be used as loggin function. If a function it will used as loggin function instead of the default . Defaults to `false`.
 
-## Usage
+### Example
 
 Lets assume this is the structure of our commands directory.
 
@@ -31,13 +34,12 @@ commands/
     └── all.js
 ```
 
-**As express middleware**
 ```js
 var express = require('express')
  ,  dafuq = require('dafuq')
 
 var app = expres()
-app.use(dafuq({
+app.use('/api.cmd/', dafuq({
 	commands: './commands',
 	shebang: '/usr/bin/env node', // optional
 	debug: true // optional
@@ -45,11 +47,7 @@ app.use(dafuq({
 app.listen(3000)
 ```
 
-**CLI**
-```
-$ dafuq --commands="./commands" [--port=3000] [--shebang="/usr/bin/env node"] [--debug]
-```
-
+With the previous express server we would be serving the following routes:
 ```
 GET  /bye
 GET  /hello/:name
@@ -58,10 +56,11 @@ POST /hello
 *    /no-exec
 ```
 
-## Options
-* **commands**: Path where to look for commands to run on requests.
-* [**shebang**]: If specified, this will be the command line interpreter to be used when running the file. If it is not specified we will check the file for execution permisions and run it by itself. Defaults to ''.
-* [**debug**]: Show debug info. If true, `console.log` will be used as loggin function. If a function it will used as loggin function instead of the default . Defaults to `false`.
+### CLI
+dafuq also allows to be used as cli:
+```
+$ dafuq --commands="./commands" [--port=3000] [--shebang="/usr/bin/env node"] [--debug]
+```
 
 ## Considerations
 
@@ -108,3 +107,12 @@ When a command is run the output will be determined by this steps:
 	previous success value.
 * If the output of the command is NOT a JSON: The output will be placed in a `result` property in an object that also contains the
 previous success value.
+
+
+## Motivation
+Ok, so you just discovered a really neat tool/library but... *oh, oh* its written in **THAT LANGUAGE**. All your dreams of api-fing that thing just blew up because you just wanted to run a little few commands here and there.
+
+This recently happened at @Upplication, and **that language** happened to be ruby. It's not that we don't like ruby, it's just we dont have anyone on the team who can or have the time and motivation to start learning about it *properly*. So we decided to implement this kind of solution.
+
+## License
+[MIT](LICENSE)
