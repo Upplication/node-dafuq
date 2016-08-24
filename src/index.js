@@ -83,6 +83,47 @@ function isExecutable(path) {
 }
 
 /**
+ * Matches and extracts the headers that would be used as commadn line params
+ * @type {RegExp}
+ */
+const HEADER_X_ARG_REGEX = /^x-arg-(.*)$/i
+
+/**
+ * Builds the command line arguments string (--option1 value1 --option2) by
+ * searching on the necessary request fields.
+ *
+ * The fields and order or prevailing is as follows:
+ *  * Headers: Header fields that match {@link HEADER_X_ARG_REGEX}
+ *  * Query Params
+ *  * URL params
+ *  * Body members
+ *
+ * @param  {Object} req - express request object
+ * @return {String} The command options string
+ */
+function buildCommandFlags(req) {
+    let cmdFlags = ''
+
+    // Build headers object for later merge
+    const headerFlags = Object.keys(req.headers).reduce((headers, header) => {
+        const mtch = HEADER_X_ARG_REGEX.exec(header)
+        if (mtch)
+            headers[mtch[1]] = req.headers[header]
+        return headers
+    }, {})
+
+    const flags = Object.assign({}, headerFlags, req.query, req.params, req.body)
+    Object.keys(flags).forEach(function(flagName) {
+        const flagValue = flags[flagName]
+        cmdFlags += ` --${flagName}`
+        if (flagValue)
+            cmdFlags += ` ${flagValue}`
+    })
+
+    return cmdFlags
+}
+
+/**
  * Executes the specified command on the OS terminal and returns via cb the
  * response written to the stdout and stderr wrapped arround a JSON object.
  *
@@ -114,18 +155,17 @@ function execCommand(command, cb) {
     child_process.exec(command, function(err, stdout, stderr) {
         const code = err && err.code ? err.code : 0
         let result =  stderr || stdout || (err || {}).message
+
         if (result)
             result = result.trim()
+
         try {
             // Try to parse it as JSON
             const json = JSON.parse(result)
             result = json
-        } catch(e) {
-            // If an error occurs parsing the json, treat it as a string
-            result = { result: result }
-        }
+        } catch(e) {} // If an error occurs parsing the json leave it as it was
 
-        // If the result doesnt contain the field success, treat its
+        // If the result doesn't contain the field success, treat its
         // contents as the result part and add the succes field
         if (result.success === undefined) {
             result = {
@@ -193,16 +233,14 @@ function dafuq(opts) {
             let cmd = file
             if (opts.shebang)
                 cmd = `${ opts.shebang } ${ cmd }`
-
-            // Append all the parameters provided via query, params and body to the cmd
-            // as cli configuration flags
-            const flags = Object.assign({}, req.query, req.params, req.body)
-            Object.keys(flags).forEach(function(flagName) {
-                const flagValue = flags[flagName]
-                cmd += ` --${flagName}`
-                if (flagValue)
-                    cmd += ` ${flagValue}`
-            })
+            /*
+             Append all the parameters provided via:
+                * query params
+                * url params
+                * body members
+                * x-args headers
+            */
+            cmd += buildCommandFlags(req)
 
             debug(`$ ${cmd}`)
             execCommand(cmd, result => {

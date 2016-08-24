@@ -170,7 +170,7 @@ describe('Arguments', () => {
         app = dafuq({ path: './commands' });
     })
 
-    it('should take url params from directories starting with colon (:)', (done) => {
+    it('should pass url params (from directories starting with colon) as command line arguments', (done) => {
         request(app)
             .get('/hello/Jhon')
             .expect(200)
@@ -199,11 +199,21 @@ describe('Arguments', () => {
             .end(done)
     })
 
-    it('should pass form-url-encoded members params as command line arguments', (done) => {
+    it('should pass form-url-encoded body members as command line arguments', (done) => {
         request(app)
             .post('/hello')
             .type('form')
             .send({ name: 'Jhon' })
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal("Hello Jhon"))
+            .end(done)
+    })
+
+    it('should pass X-Arg headers as command line arguments', (done) => {
+        request(app)
+            .get('/hello')
+            .set('X-Arg-name', 'Jhon')
             .expect(200)
             .expect('Content-Type', /json/)
             .expect(res => res.body.result.should.be.equal("Hello Jhon"))
