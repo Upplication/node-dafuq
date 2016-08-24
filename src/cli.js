@@ -27,6 +27,8 @@ var argv = require('yargs')
     // help
     .help('help')
     .alias('help', 'h')
+    .version()
+    .alias('version', 'v')
     .argv;
 
 // Resolve full path when executing via CLI
