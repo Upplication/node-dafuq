@@ -134,7 +134,7 @@ function buildCommandFlags(req) {
         const flagValue = flags[flagName]
         cmdFlags += ` --${flagName}`
         if (flagValue)
-            cmdFlags += ` ${flagValue}`
+            cmdFlags += ` "${flagValue}"`
     })
 
     return cmdFlags

@@ -88,7 +88,7 @@ surname=wick&profession=killer
 ```
 would be equivalent to the following command
 ```
-'./hello/:name/get.sh' \
+./hello/\:name/get.sh \
 	--name john \
 	--surname wick \
 	--username username \
@@ -97,8 +97,42 @@ would be equivalent to the following command
 	--profession killer
 ```
 
+### Recieving Files
+When a file is posted via multipart dafuq will pass the absolute path where the file has been temporary uploaded to the command via a flag with the name of the name of the file on the form.
+
+```
+POST /upload HTTP/1.1
+Content-Type: multipart/form-data; boundary=----------------------
+Content-Length: 554
+
+------------------------
+Content-Disposition: form-data; name="text"
+
+text default
+------------------------
+Content-Disposition: form-data; name="file1"; filename="a.txt"
+Content-Type: text/plain
+
+Content of a.txt.
+
+------------------------
+Content-Disposition: form-data; name="file2"; filename="a.html"
+Content-Type: text/html
+
+<!DOCTYPE html><title>Content of a.html.</title>
+
+--------------------------
+```
+would be equivalent to the following command
+```
+./upload/post.sh \
+	--text "text default"
+	--file1 /tmp/upload-1886474873587 \
+	--file2 /tmp/upload-1886474873952
+```
+
 ### Building the resposne
-If the exit code of the command was different from 0 it will be taken as unsuccessful.
+If the exit code of the command was different from 0 it will be taken as unsuccessful (almost every time, see [Sending a file]).
 
 When a command is run the output will be determined by this steps:
 * If the output of the command is a JSON
@@ -109,6 +143,8 @@ When a command is run the output will be determined by this steps:
 * If the output of the command is NOT a JSON: The output will be placed in a `result` property in an object that also contains the
 previous success value.
 
+### Sending a file
+There is an exception to the [Building the response] description. If the command exits with an exit code equal to `10` dafuq assumes you want to return a file instead of a JSON. In this case the output of your command should be **strictly** and **only** the absolute path you want to serve. Don't worry about breaklines or blankspaces, the output will be trimmed before working with it.
 
 ## Motivation
 Ok, so you just discovered a really neat tool/library but... *oh, oh* its written in **THAT LANGUAGE**. All your dreams of api-fing that thing just blew up because you just wanted to run a little few commands here and there.
@@ -121,7 +157,7 @@ This recently happened at @Upplication, and **that language** happened to be rub
 [dafuq-logo]: http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg
 [npm-image]: https://img.shields.io/npm/v/dafuq.svg
 [npm-url]: https://npmjs.org/package/dafuq
-[travis-image]: https://img.shields.io/travis/upplication/node-dafuq/master.svg
-[travis-url]:  https://travis-ci.org/upplication/node-dafuq
-[coveralls-image]: https://img.shields.io/coveralls/upplication/node-dafuq/master.svg
-[coveralls-url]: https://coveralls.io/r/upplication/node-dafuq?branch=master
+[travis-image]: https://img.shields.io/travis/Upplication/node-dafuq/master.svg
+[travis-url]:  https://travis-ci.org/Upplication/node-dafuq
+[coveralls-image]: https://img.shields.io/coveralls/Upplication/node-dafuq/master.svg
+[coveralls-url]: https://coveralls.io/r/Upplication/node-dafuq?branch=master
