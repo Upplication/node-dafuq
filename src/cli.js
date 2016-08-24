@@ -31,10 +31,11 @@ var argv = require('yargs')
 
 // Resolve full path when executing via CLI
 if (require.main === module)
-    argv.commands = path.resolve(process.pwd(), argv.commands)
+    argv.commands = path.resolve(process.cwd(), argv.commands)
 
 app.use(dafuq({
     path: argv.commands,
-    shebang: argv.shebang
+    shebang: argv.shebang,
+    debug: argv.debug
 }))
 app.listen(argv.port)

@@ -5,7 +5,6 @@ const fs = require('fs')
   ,   assert = require('assert')
   ,   child_process = require('child_process')
   ,   glob = require('glob')
-  ,   debug = require('debug')('dafuq')
   ,   express = require('express')
   ,   bodyParser = require('body-parser')
 
@@ -32,7 +31,6 @@ function assertIsDirectory(path) {
         assert(fs.statSync(path).isDirectory(), `path ${path} is not a directory`)
     } catch(e) {
         const msg = `path ${path} does not exists or doesn't have proper permissions`
-        debug(msg)
         assert(false, msg)
     }
     return path
@@ -68,18 +66,14 @@ const MASK_EXEC = parseInt('0100', 8)
 /**
  * Returns true if the provided path can be executed, false otherwise
  * 
- * @param  {DafuqPath} path the path to check if is executable
+ * @param  {String} path the absolute path to check if is executable
  * @return {Boolean}     true if the path is executable, false otherwise
  */
 function isExecutable(path) {
-    let isExe
     try {
-        const stats = fs.statSync(path.absolute)
-        isExe = !!(stats.mode & MASK_EXEC)
-    } catch(e) { isExe = false }
-    if (!isExe)
-        debug(`${ path.absolute } is not executable, ignoring`)
-    return isExe
+        const stats = fs.statSync(path)
+        return !!(stats.mode & MASK_EXEC)
+    } catch(e) { return false }        
 }
 
 /**
@@ -178,18 +172,17 @@ function execCommand(command, cb) {
     })
 }
 
-function dafuq(opts) {
+function dafuq(config) {
 
-    debug('Building dafuq instance with %j', opts)
     // Allow constructor to be only the commands directory
-    if (typeof opts === 'string')
-        opts = { path: path }
+    if (typeof config === 'string')
+        config = { path: path }
 
     // Assign default values
-    opts = Object.assign({
+    const opts = Object.assign({
         shebang: '',
-        intercept: () => {}
-    }, opts)
+        debug: false
+    }, config)
 
     // Options validation
 
@@ -205,6 +198,17 @@ function dafuq(opts) {
     if (opts.intercept && (typeof opts.intercept !== 'function'))
         throw new TypeError('intercept must be a function')
 
+    if (opts.debug !== undefined) {
+        if (opts.debug === true)
+            opts.debug = console.log
+        else if (opts.debug === false)
+            opts.debug = (() => {})
+        else if (typeof opts.debug !== 'function')
+            throw new TypeError('debug must be a boolean or a logging function')
+    }
+
+    opts.debug('Building dafuq instance with %j', config)
+
     // Build an absolute path to the commands directory and assert it is actually a directory
     const commandsPath = path.resolve(path.dirname(module.parent.filename), opts.path)
     assertIsDirectory(commandsPath)
@@ -213,8 +217,14 @@ function dafuq(opts) {
     let files = findFilesAt(commandsPath, globPattern)
 
     // If no shebang is specified, the file need to be executable by itself
-    if (!opts.shebang)
-        files = files.filter(isExecutable)
+    if (!opts.shebang) {
+        files = files.filter(file => {
+            const isExe = isExecutable(file.absolute)
+            if (!isExe)
+                opts.debug(`${ file.absolute } is not executable, ignoring`)
+            return isExe
+        })
+    }
 
     const app = express()
     app.use(bodyParser.urlencoded({ extended: false }))
@@ -242,7 +252,7 @@ function dafuq(opts) {
             */
             cmd += buildCommandFlags(req)
 
-            debug(`$ ${cmd}`)
+            opts.debug(`$ ${cmd}`)
             execCommand(cmd, result => {
                 Object.defineProperty(res, moduleName, { value: result })
                 next()
@@ -256,13 +266,9 @@ function dafuq(opts) {
         const url = '/' + path.dirname(file.relative)
         const method = path.basename(filePath, path.extname(filePath))
         const middleware = executionMiddleware(file.absolute)
-        debug(`Adding ${ method } ${ url }`)
+        opts.debug(`Adding ${ method } ${ url }`)
         app[method](url, middleware)
     })
-
-    // Allow library clients to do something with the responses rather
-    // than the default behaviour
-    opts.intercept(app)
 
     // Fallback behaviour, send the result as json
     app.all('*', (req, res, next) => {
