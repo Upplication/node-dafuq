@@ -1,4 +1,6 @@
 # dafuq?
+[![Build Status](https://travis-ci.org/Upplication/node-dafuq.svg?branch=master)](https://travis-ci.org/Upplication/node-dafuq)
+[![npm version](https://badge.fury.io/js/dafuq.svg)](https://badge.fury.io/js/dafuq)
 
 A cli commands based API.
 
