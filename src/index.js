@@ -42,7 +42,7 @@ const RESULT_TYPE_FILE = 'file'
  * @throws {AssertionError} If the path is not a directory
  */
 function assertIsDirectory(path) {
-    let dirStats;
+    let dirStats
     try {
         assert(fs.statSync(path).isDirectory(), `path ${path} is not a directory`)
     } catch(e) {

@@ -1,13 +1,14 @@
-# dafuq?
+# dafuq
 
-[![Build Status](https://travis-ci.org/Upplication/node-dafuq.svg?branch=master)](https://travis-ci.org/Upplication/node-dafuq)
-[![npm version](https://badge.fury.io/js/dafuq.svg)](https://badge.fury.io/js/dafuq)
+  A cli commands based API.
 
-A cli commands based API.
+  [![NPM Version][npm-image]][npm-url]
+  [![Build Status][travis-image]][travis-url]
+  [![Test Coverage][coveralls-image]][coveralls-url]
+
+[![dafuq][dafuq-logo]](http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg)
 
 dafuq allows you to create an api that executes files on the os command line (via `child_process.exec`) and returns the output generated through a JSON API.
-
-![dafuq?](http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg)
 
 ## dafuq(opts)
 
@@ -116,3 +117,11 @@ This recently happened at @Upplication, and **that language** happened to be rub
 
 ## License
 [MIT](LICENSE)
+
+[dafuq-logo]: http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg
+[npm-image]: https://img.shields.io/npm/v/dafuq.svg
+[npm-url]: https://npmjs.org/package/dafuq
+[travis-image]: https://img.shields.io/travis/upplication/node-dafuq/master.svg
+[travis-url]:  https://travis-ci.org/upplication/node-dafuq
+[coveralls-image]: https://img.shields.io/coveralls/upplication/node-dafuq/master.svg
+[coveralls-url]: https://coveralls.io/r/upplication/node-dafuq?branch=master
