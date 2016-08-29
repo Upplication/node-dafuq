@@ -200,6 +200,38 @@ function execCommand(command, cb) {
     })
 }
 
+const HEADER_BEARER_REGEX = /^bearer (.*)$/i
+
+/**
+ * Returns a middleware that will reject the request with 401 if the
+ * bearer token at the request does not match the token provided.
+ *
+ * @param  {String} token The token that the request must provide to continue
+ * @return {Function}     Middleware function
+ *
+ * @see  {@link https://www.npmjs.com/package/express-bearer-token}
+ * @see  {@link https://tools.ietf.org/html/rfc6750}
+ */
+function accessMiddleware(token) {
+    return (req, res, next) => {
+        let bearer = null
+        if (req.body && req.body.access_token)
+            bearer = req.body.access_token
+        else if (req.query && req.query.access_token)
+            bearer = req.query.access_token
+        else if (req.headers && req.headers['authorization']) {
+            const match = HEADER_BEARER_REGEX.exec(req.headers['authorization'])
+            if (match)
+                bearer = match[1]
+        }
+
+        if (bearer === token)
+            next()
+        else
+            res.status(401).send()
+    }
+}
+
 export default function dafuq(config) {
 
     // Allow constructor to be only the commands directory
@@ -209,7 +241,8 @@ export default function dafuq(config) {
     // Assign default values
     const opts = Object.assign({
         shebang: '',
-        debug: false
+        debug: false,
+        brearer: ''
     }, config)
 
     // Options validation
@@ -221,6 +254,9 @@ export default function dafuq(config) {
     // If shebang provided, but not valid
     if (opts.shebang && (typeof opts.shebang !== 'string' || opts.shebang.length == 0))
         throw new TypeError('shebang must be a non empty string')
+
+    if (opts.bearer && (typeof opts.bearer !== 'string' || opts.bearer.length == 0))
+        throw new TypeError('bearer must be a non empty string')
 
     if (opts.debug !== undefined) {
         if (opts.debug === true)
@@ -261,7 +297,8 @@ export default function dafuq(config) {
      * put the result of its execution on response object in the property pointed
      * by moduleName.
      *
-     * @param {String} file
+     * @param  {String} file
+     * @return {Function}     Middleware function
      */
     function executionMiddleware(file) {
         return (req, res, next) => {
@@ -292,12 +329,21 @@ export default function dafuq(config) {
         const filePath = file.relative
         const url = '/' + path.dirname(file.relative)
         const method = path.basename(filePath, path.extname(filePath)).toLowerCase()
-        const middleware = executionMiddleware(file.absolute)
+        const middlewares = []
+
+        // If bearer is defined, add an access middleware
+        if (opts.bearer)
+            middlewares.push(accessMiddleware(opts.bearer))
+
+        // If the method is not any of the "get" methods add the multipart
+        // upload middleware
+        if (method !== 'get' && method !== 'head' && method !== 'options')
+            middlewares.push(upload.any())
+
+        middlewares.push(executionMiddleware(file.absolute))
+
         opts.debug(`Adding ${ method } ${ url }`)
-        if (method === 'get' || method === 'head' || method === 'options')
-            app[method](url, middleware)
-        else
-            app[method](url, upload.any(), middleware)
+        app[method](url, ...middlewares)
     })
 
     // Fallback behaviour, send the result

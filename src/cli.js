@@ -15,6 +15,9 @@ var argv = require('yargs')
     // shebang
     .describe('shebang', 'the interpreter to use when running the command files')
     .default('shebang', '')
+    // bearer
+    .describe('bearer', 'an access token that must be provided on the requests to the api')
+    .default('bearer', '')
     // port
     .describe('port', 'the port where to listen for api call')
     .alias('port', 'p')

@@ -16,6 +16,7 @@ dafuq allows you to create an api that executes files on the os command line (vi
 * **commands**: Path where to look for commands to run on requests.
 * **shebang** (optional): If specified, this will be the command line interpreter to be used when running the file. If it is not specified we will check the file for execution permisions and run it by itself. Defaults to ''.
 * **debug** (optional): Show debug info. If true, `console.log` will be used as loggin function. If a function it will used as loggin function instead of the default . Defaults to `false`.
+* **bearer** (optional): Add bearer token authorization method to the api. The acces token is provided as the value of this config. Defaults to ''
 
 ### Example
 
@@ -44,6 +45,7 @@ app.use('/api.cmd/', dafuq({
 	commands: './commands',
 	shebang: '/usr/bin/env node', // optional
 	debug: true // optional
+	bearer: 'y67x81eg-21od-eewg-ciey-d52f6crtcrqv'
 }))
 app.listen(3000)
 ```
@@ -60,7 +62,12 @@ POST /hello
 ### CLI
 dafuq also allows to be used as cli:
 ```
-$ dafuq --commands="./commands" [--port=3000] [--shebang="/usr/bin/env node"] [--debug]
+$ dafuq \
+	--commands="./commands" \
+	--port=8080 \ # Defaults to 3000
+	--shebang="/usr/bin/env node" \ # Defaults to '' (direct terminal execution)
+	--bearer="y67x81eg-21od-eewg-ciey-d52f6crtcrqv" # API will require bearer access token
+	--debug
 ```
 
 ## Considerations

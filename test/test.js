@@ -66,6 +66,21 @@ describe('Constructor', function() {
         }).should.throw(/shebang/);
     })
 
+    it('should throw if bearer is not a valid string',  function() {
+        build({
+            path: './commands',
+            bearer: 1
+        }).should.throw(/bearer/);
+        build({
+            path: './commands',
+            bearer: {}
+        }).should.throw(/bearer/);
+        build({
+            path: './commands',
+            bearer: []
+        }).should.throw(/bearer/);
+    })
+
     it('should throw if debug is not a boolean nor a function',  function() {
         build({
             path: './commands',
@@ -103,7 +118,7 @@ describe('Constructor', function() {
 })
 
 describe('Invoking a file', () => {
-    describe('without shebang', () => {
+    describe('specifing path', () => {
         let app;
         before(function() {
             app = dafuq({ path: './commands' });
@@ -190,7 +205,50 @@ describe('Invoking a file', () => {
                 .get('/no-exec')
                 .expect(404)
                 .end(done)
-        })      
+        })
+    })
+
+    describe('specifing bearer', () => {
+        let app;
+        const token = 'klr5udmm-qc7g-2ndh-98v2-qjn5039avxqn'
+
+        before(function() {
+            app = dafuq({
+                path: './commands',
+                bearer: token
+            });
+        })
+
+        it('should forbid access if no token on the request', (done) => {
+            request(app)
+                .get('/hello')
+                .expect(401)
+                .end(done)
+        })
+
+        it('should allow access if token on the query', (done) => {
+            request(app)
+                .get('/hello')
+                .query({ 'access_token': token })
+                .expect(200)
+                .end(done)
+        })
+
+        it('should allow access if token on the body', (done) => {
+            request(app)
+                .post('/hello')
+                .send({ 'access_token': token })
+                .expect(200)
+                .end(done)
+        })
+
+        it('should allow access if token on the header', (done) => {
+            request(app)
+                .get('/hello')
+                .set('Authorization', 'Bearer ' + token)
+                .expect(200)
+                .end(done)
+        })
     })
 
     describe('specifing shebang', () => {
