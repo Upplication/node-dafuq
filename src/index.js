@@ -8,6 +8,8 @@ const fs = require('fs')
   ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
 
+const IS_TEST = process.env['NODE_ENV'] === 'test'
+
 const resResultProperty = 'dafuq_result'
 const resTypeProperty = 'dafuq_type'
 
@@ -222,7 +224,7 @@ export default function dafuq(config) {
 
     if (opts.debug !== undefined) {
         if (opts.debug === true)
-            opts.debug = console.log
+            opts.debug = IS_TEST ? (() => {}) : console.log
         else if (opts.debug === false)
             opts.debug = (() => {})
         else if (typeof opts.debug !== 'function')
