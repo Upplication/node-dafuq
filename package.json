@@ -2,9 +2,9 @@
   "name": "dafuq",
   "version": "1.0.5",
   "description": "",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "start": "dafuq --commands=../test/commands --debug",
+    "start": "lib/cli --commands=../test/commands --debug",
     "test": "cross-env NODE_ENV=test nyc mocha",
     "coverage": "cross-env NODE_ENV=test nyc report --reporter=text-lcov | coveralls",
     "build": "babel src -d lib",
@@ -37,7 +37,7 @@
   },
   "repository": "Upplication/node-dafuq",
   "bin": {
-    "dafuq": "src/cli.js"
+    "dafuq": "lib/cli.js"
   },
   "nyc": {
     "sourceMap": false,
