@@ -9,4 +9,4 @@ var argv = require('yargs')
     .alias('h', 'help')
     .argv;
 
-console.log(`Hello ${ argv.name }`);
+console.log('Hello ' + argv.name);

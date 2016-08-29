@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-var path = require('path')
-var express = require('express')
-var app = express()
-var dafuq = require('./')
+const path = require('path')
+  ,   express = require('express')
+  ,   app = express()
+  ,   dafuq = require('./')
 
 var argv = require('yargs')
     .usage('$0 Leverages a command-based api')

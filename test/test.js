@@ -1,10 +1,8 @@
-'use strict'
-
-require('should');
+require('should')
 const p = require('path')
 const fs = require('fs')
 const request = require('supertest');
-const dafuq = require(process.env['DAFUQ_COVERAGE'] ? '../src-cov' : '../src');
+const dafuq = require(process.env['DAFUQ_COVERAGE'] ? '../src-cov' : '../src')
 
 describe('Constructor', function() {
 

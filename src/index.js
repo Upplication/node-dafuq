@@ -1,5 +1,3 @@
-'use strict'
-
 const fs = require('fs')
   ,   os = require('os')
   ,   path = require('path')
@@ -200,7 +198,7 @@ function execCommand(command, cb) {
     })
 }
 
-function dafuq(config) {
+export default function dafuq(config) {
 
     // Allow constructor to be only the commands directory
     if (typeof config === 'string')
@@ -316,5 +314,3 @@ function dafuq(config) {
 
     return app
 }
-
-module.exports = dafuq

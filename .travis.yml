@@ -1,16 +1,19 @@
 language: node_js
 node_js:
-  - 4
-sudo: required
-# before_install:
-#   - wget http://siliconforks.com/jscoverage/download/jscoverage-0.5.tar.bz2
-#   - tar xvfj jscoverage-0.5.tar.bz2
-#   - cd jscoverage-0.5
-#   - ./configure
-#   - make
-#   - sudo make install
-#   - cd -
-# before_script:
-#   - jscoverage --no-highlight src src-cov
-# script:
-#   - DAFUQ_COVERAGE=1 ./node_modules/.bin/mocha test -R mocha-lcov-reporter | ./node_modules/coveralls/bin/coveralls.js
+  - "0.10"
+  - "0.12"
+  - "1.8"
+  - "2.5"
+  - "3.3"
+  - "4.4"
+  - "5.11"
+  - "6.2"
+sudo: false
+cache:
+  directories:
+    - node_modules
+before_install:
+  # Update Node.js modules
+  - "test ! -d node_modules || npm prune"
+  - "test ! -d node_modules || npm rebuild"
+after_success: npm run coverage
