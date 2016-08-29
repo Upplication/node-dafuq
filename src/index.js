@@ -220,10 +220,6 @@ export default function dafuq(config) {
     if (opts.shebang && (typeof opts.shebang !== 'string' || opts.shebang.length == 0))
         throw new TypeError('shebang must be a non empty string')
 
-    // If intercept provided, but not valid
-    if (opts.intercept && (typeof opts.intercept !== 'function'))
-        throw new TypeError('intercept must be a function')
-
     if (opts.debug !== undefined) {
         if (opts.debug === true)
             opts.debug = console.log
