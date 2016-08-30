@@ -168,36 +168,45 @@ function buildCommandFlags(req) {
  * @param  {Function} cb  Completion callback. The result object and the
  *                        the result type are pased as arguments
  */
-function execCommand(command, cb) {
-    child_process.exec(command, function(err, stdout, stderr) {
-        const code = err && err.code ? err.code : 0
-        let result =  stderr || stdout || (err || {}).message
-        let type = RESULT_TYPE_OBJECT
+function execCommand(command, timeout, cb) {
+    const child = child_process.exec(command,
+        { timeout },
+        (err, stdout, stderr) => {
+            let code = 0
+            if (err) {
+                code = err.code || 1
+                if (err.killed === true)
+                    err = new Error('Command killed due timeout')
+            }
 
-        if (result)
-            result = result.trim()
+            let result =  stderr || stdout || (err || {}).message
+            let type = RESULT_TYPE_OBJECT
 
-        if (code === EXIT_CODE_FILE) {
-            type = RESULT_TYPE_FILE
-        } else {
-            try {
-                // Try to parse it as JSON
-                const json = JSON.parse(result)
-                result = json
-            } catch(e) {} // If an error occurs parsing the json leave it as it was
+            if (result)
+                result = result.trim()
 
-            // If the result doesn't contain the field success, treat its
-            // contents as the result part and add the succes field
-            if (result.success === undefined) {
-                result = {
-                    success: code === 0,
-                    result: result
+            if (code === EXIT_CODE_FILE) {
+                type = RESULT_TYPE_FILE
+            } else {
+                try {
+                    // Try to parse it as JSON
+                    const json = JSON.parse(result)
+                    result = json
+                } catch(e) {} // If an error occurs parsing the json leave it as it was
+
+                // If the result doesn't contain the field success, treat its
+                // contents as the result part and add the succes field
+                if (result.success === undefined) {
+                    result = {
+                        success: code === 0,
+                        result: result
+                    }
                 }
             }
-        }
 
-        cb(result, type)
-    })
+            cb(result, type)
+        }
+    )
 }
 
 const HEADER_BEARER_REGEX = /^bearer (.*)$/i
@@ -242,7 +251,8 @@ export default function dafuq(config) {
     const opts = Object.assign({
         shebang: '',
         debug: false,
-        brearer: ''
+        brearer: '',
+        timeout: 0
     }, config)
 
     // Options validation
@@ -255,8 +265,13 @@ export default function dafuq(config) {
     if (opts.shebang && (typeof opts.shebang !== 'string' || opts.shebang.length == 0))
         throw new TypeError('shebang must be a non empty string')
 
+    // If bearer provided, but not valid
     if (opts.bearer && (typeof opts.bearer !== 'string' || opts.bearer.length == 0))
         throw new TypeError('bearer must be a non empty string')
+
+    // If timeout provided, but not valid
+    if (opts.timeout && (typeof opts.timeout !== 'number'))
+        throw new TypeError('timeout must be a number')
 
     if (opts.debug !== undefined) {
         if (opts.debug === true)
@@ -316,7 +331,7 @@ export default function dafuq(config) {
             cmd += buildCommandFlags(req)
 
             opts.debug(`$ ${cmd}`)
-            execCommand(cmd, (result, type) => {
+            execCommand(cmd, opts.timeout, (result, type) => {
                 Object.defineProperty(res, resResultProperty, { value: result })
                 Object.defineProperty(res, resTypeProperty, { value: type })
                 next()

@@ -54,6 +54,10 @@ describe('Constructor', function() {
     it('should throw if shebang is not a valid string',  function() {
         build({
             path: './commands',
+            bearer: 'shebang'
+        }).should.not.throw(/shebang/);
+        build({
+            path: './commands',
             shebang: 1
         }).should.throw(/shebang/);
         build({
@@ -69,6 +73,10 @@ describe('Constructor', function() {
     it('should throw if bearer is not a valid string',  function() {
         build({
             path: './commands',
+            bearer: 'token'
+        }).should.not.throw(/bearer/);
+        build({
+            path: './commands',
             bearer: 1
         }).should.throw(/bearer/);
         build({
@@ -79,6 +87,25 @@ describe('Constructor', function() {
             path: './commands',
             bearer: []
         }).should.throw(/bearer/);
+    })
+
+    it('should throw if timeout is not a valid number',  function() {
+        build({
+            path: './commands',
+            timeout: 1
+        }).should.not.throw(/timeout/);
+        build({
+            path: './commands',
+            timeout: '1'
+        }).should.throw(/timeout/);
+        build({
+            path: './commands',
+            timeout: {}
+        }).should.throw(/timeout/);
+        build({
+            path: './commands',
+            timeout: []
+        }).should.throw(/timeout/);
     })
 
     it('should throw if debug is not a boolean nor a function',  function() {
@@ -247,6 +274,27 @@ describe('Invoking a file', () => {
                 .get('/hello')
                 .set('Authorization', 'Bearer ' + token)
                 .expect(200)
+                .end(done)
+        })
+    })
+
+    describe('specifing timeout', () => {
+        let app;
+
+        before(function() {
+            app = dafuq({
+                path: './commands',
+                timeout: 500
+            });
+        })
+
+        it('should kill the process if takes longer than the timeout', (done) => {
+            request(app)
+                .get('/hangup')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(res => res.body.success.should.be.false())
+                .expect(res => res.body.result.should.match(/timeout/))
                 .end(done)
         })
     })

@@ -18,13 +18,18 @@ var argv = require('yargs')
     // bearer
     .describe('bearer', 'an access token that must be provided on the requests to the api')
     .default('bearer', '')
+    // timeout
+    .describe('timeout', 'the time to wait before killing a spawned process. 0 means infinite')
+    .number('timeout')
+    .alias('timeout', 't')
+    .default('timeout', 0)
     // port
     .describe('port', 'the port where to listen for api call')
+    .number('port')
     .alias('port', 'p')
     .default('port', 3000)
     // debug
     .describe('debug', 'show debug and trace output when running')
-    .boolean('debug')
     .alias('debug', 'd')
     .default('debug', false)
     // help
@@ -41,6 +46,7 @@ if (require.main === module)
 app.use(dafuq({
     path: argv.commands,
     shebang: argv.shebang,
-    debug: argv.debug
+    debug: argv.debug,
+    timeout: argv.timeout
 }))
 app.listen(argv.port)
