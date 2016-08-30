@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-setTimeout(() => {}, 20000)
+setTimeout(function(){}, 20000)
