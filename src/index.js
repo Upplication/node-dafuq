@@ -10,8 +10,8 @@ const fs = require('fs')
 
 const IS_TEST = process.env['NODE_ENV'] === 'test'
 
-const resResultProperty = 'dafuq_result'
-const resTypeProperty = 'dafuq_type'
+const RESULT_PROPERTY = 'dafuq_result'
+const RESULT_TYPE_PROPERTY = 'dafuq_type'
 
 /**
  * @typedef DafuqPath
@@ -60,7 +60,7 @@ const globPattern = '**/+(all|get|post|put|delete|head|options).*'
 
 /**
  * Returns the files at dir matching the given glob pattern
- * 
+ *
  * @param  {String} dir The directory to search for files
  * @param  {String} pattern A glob pattern that files must match
  * @return {DafuqPath[]} All the files that mattched the pattern at the given dir
@@ -81,7 +81,7 @@ const MASK_EXEC = parseInt('0100', 8)
 
 /**
  * Returns true if the provided path can be executed, false otherwise
- * 
+ *
  * @param  {String} path the absolute path to check if is executable
  * @return {Boolean}     true if the path is executable, false otherwise
  */
@@ -241,6 +241,23 @@ function accessMiddleware(token) {
     }
 }
 
+/**
+ * Returns a middleware that will end the response sending
+ * the result of the dafuq execution.
+ *
+ * @return {Function} Middleware function
+ */
+function resultMiddleware() {
+    return (req, res, next) => {
+        if (res[RESULT_TYPE_PROPERTY] === RESULT_TYPE_OBJECT)
+            res.type('json').json(res[RESULT_PROPERTY])
+        else if (res[RESULT_TYPE_PROPERTY] === RESULT_TYPE_FILE)
+            res.download(res[RESULT_PROPERTY])
+        else // This shouldn't happen, but just in case
+            res.status(500).send()
+    }
+}
+
 export default function dafuq(config) {
 
     // Allow constructor to be only the commands directory
@@ -332,8 +349,8 @@ export default function dafuq(config) {
 
             opts.debug(`$ ${cmd}`)
             execCommand(cmd, opts.timeout, (result, type) => {
-                Object.defineProperty(res, resResultProperty, { value: result })
-                Object.defineProperty(res, resTypeProperty, { value: type })
+                Object.defineProperty(res, RESULT_PROPERTY, { value: result })
+                Object.defineProperty(res, RESULT_TYPE_PROPERTY, { value: type })
                 next()
             })
         }
@@ -356,19 +373,10 @@ export default function dafuq(config) {
             middlewares.push(upload.any())
 
         middlewares.push(executionMiddleware(file.absolute))
+        middlewares.push(resultMiddleware())
 
         opts.debug(`Adding ${ method } ${ url }`)
         app[method](url, ...middlewares)
-    })
-
-    // Fallback behaviour, send the result
-    app.all('*', (req, res, next) => {
-        if (res[resTypeProperty] === RESULT_TYPE_OBJECT)
-            res.type('json').json(res[resResultProperty])
-        else if (res[resTypeProperty] === RESULT_TYPE_FILE)
-            res.download(res[resResultProperty])
-        else
-            res.status(404).send()
     })
 
     return app
