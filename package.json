@@ -32,6 +32,7 @@
     "mocha": "^3.0.2",
     "nyc": "^8.1.0",
     "should": "^11.1.0",
+    "sinon": "^1.17.5",
     "supertest": "^2.0.0"
   },
   "repository": "Upplication/node-dafuq",

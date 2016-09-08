@@ -1,7 +1,8 @@
 require('should')
 const p = require('path')
 const fs = require('fs')
-const request = require('supertest');
+const request = require('supertest')
+const sinon = require('sinon')
 const dafuq = require(process.env['DAFUQ_COVERAGE'] ? '../src-cov' : '../src')
 
 describe('Constructor', function() {
@@ -124,22 +125,78 @@ describe('Constructor', function() {
         build({
             path: './commands',
             debug: ''
-        }).should.throw();
+        }).should.throw(/debug/);
         build({
             path: './commands',
             debug: 'string'
-        }).should.throw();
+        }).should.throw(/debug/);
         build({
             path: './commands',
             debug: 123
-        }).should.throw();
+        }).should.throw(/debug/);
         build({
             path: './commands',
             debug: {}
-        }).should.throw();
+        }).should.throw(/debug/);
         build({
             path: './commands',
             debug: []
+        }).should.throw(/debug/);
+    })
+
+    it('should throw if middlewares is not an array of functions',  function() {
+        build({
+            path: './commands',
+            middlewares: []
+        }).should.not.throw();
+        build({
+            path: './commands',
+            middlewares: true
+        }).should.throw(/middlewares/);
+        build({
+            path: './commands',
+            middlewares: function() {}
+        }).should.throw(/middlewares/);
+        build({
+            path: './commands',
+            middlewares: ''
+        }).should.throw(/middlewares/);
+        build({
+            path: './commands',
+            middlewares: 'string'
+        }).should.throw(/middlewares/);
+        build({
+            path: './commands',
+            middlewares: 123
+        }).should.throw(/middlewares/);
+        build({
+            path: './commands',
+            middlewares: {}
+        }).should.throw(/middlewares/);
+        // Arrays of
+        build({
+            path: './commands',
+            middlewares: [ () => {} ]
+        }).should.not.throw();
+        build({
+            path: './commands',
+            middlewares: [ true ]
+        }).should.throw();
+        build({
+            path: './commands',
+            middlewares: [ '' ]
+        }).should.throw();
+        build({
+            path: './commands',
+            middlewares: [ 'string' ]
+        }).should.throw();
+        build({
+            path: './commands',
+            middlewares: [ 123 ]
+        }).should.throw();
+        build({
+            path: './commands',
+            middlewares: [ {} ]
         }).should.throw();
     })
 })
@@ -317,6 +374,65 @@ describe('Invoking a file', () => {
                 .end(done)
         })
     })
+
+    describe('specifing middlewares', () => {
+        let app, spy1, spy2;
+
+        before(() => {
+            spy1 = sinon.stub().callsArg(2)
+            spy2 = sinon.stub().callsArg(2)
+            app = dafuq({
+                path: './commands',
+                middlewares: [ spy1, spy2 ]
+            });
+        })
+
+        beforeEach(() => {
+            spy1.reset()
+            spy2.reset()
+        })
+
+        it('should call each middleware once in order of definition', (done) => {
+            request(app)
+                .get('/hello')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(() => {
+                    spy1.calledOnce.should.be.true()
+                    spy2.calledOnce.should.be.true()
+                    spy1.calledBefore(spy2)
+                })
+                .end(done)
+        })
+
+        it('should pass each middleware the result type of execution', (done) => {
+            request(app)
+                .get('/hello')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(response => {
+                    const [ req, res, next ] = spy1.args[0]
+                    res.should.have.property('dafuq')
+                    res.dafuq.should.have.property('result')
+                    response.body.should.be.eql(res.dafuq.result)
+                })
+                .end(done)
+        })
+
+        it('should pass each middleware the result of execution', (done) => {
+            request(app)
+                .get('/hello')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(response => {
+                    const [ req, res, next ] = spy1.args[0]
+                    res.should.have.property('dafuq')
+                    res.dafuq.should.have.property('type')
+                })
+                .end(done)
+        })
+    })
+
 })
 
 describe('Arguments', () => {

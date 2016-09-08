@@ -10,8 +10,9 @@ const fs = require('fs')
 
 const IS_TEST = process.env['NODE_ENV'] === 'test'
 
-const RESULT_PROPERTY = 'dafuq_result'
-const RESULT_TYPE_PROPERTY = 'dafuq_type'
+const RESPONSE_RESULT_CONTAINER = 'dafuq'
+const RESPONSE_RESULT_TYPE = 'type'
+const RESPONSE_RESULT = 'result'
 
 /**
  * @typedef DafuqPath
@@ -249,10 +250,13 @@ function accessMiddleware(token) {
  */
 function resultMiddleware() {
     return (req, res, next) => {
-        if (res[RESULT_TYPE_PROPERTY] === RESULT_TYPE_OBJECT)
-            res.type('json').json(res[RESULT_PROPERTY])
-        else if (res[RESULT_TYPE_PROPERTY] === RESULT_TYPE_FILE)
-            res.download(res[RESULT_PROPERTY])
+        const result = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT]
+          ,   type = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT_TYPE]
+
+        if (type === RESULT_TYPE_OBJECT)
+            res.type('json').json(result)
+        else if (type === RESULT_TYPE_FILE)
+            res.download(result)
         else // This shouldn't happen, but just in case
             res.status(500).send()
     }
@@ -269,7 +273,8 @@ export default function dafuq(config) {
         shebang: '',
         debug: false,
         brearer: '',
-        timeout: 0
+        timeout: 0,
+        middlewares: []
     }, config)
 
     // Options validation
@@ -289,6 +294,10 @@ export default function dafuq(config) {
     // If timeout provided, but not valid
     if (opts.timeout && (typeof opts.timeout !== 'number'))
         throw new TypeError('timeout must be a number')
+
+    // If middlewares provided, but not valid
+    if (opts.middlewares !== undefined && !Array.isArray(opts.middlewares))
+        throw new TypeError('middlewares must be a an array')
 
     if (opts.debug !== undefined) {
         if (opts.debug === true)
@@ -334,6 +343,9 @@ export default function dafuq(config) {
      */
     function executionMiddleware(file) {
         return (req, res, next) => {
+            // Initialize the dafuq result container
+            Object.defineProperty(res, RESPONSE_RESULT_CONTAINER, { value: {} })
+
             // Build the base command
             let cmd = file
             if (opts.shebang)
@@ -349,8 +361,14 @@ export default function dafuq(config) {
 
             opts.debug(`$ ${cmd}`)
             execCommand(cmd, opts.timeout, (result, type) => {
-                Object.defineProperty(res, RESULT_PROPERTY, { value: result })
-                Object.defineProperty(res, RESULT_TYPE_PROPERTY, { value: type })
+                Object.defineProperty(res[RESPONSE_RESULT_CONTAINER], RESPONSE_RESULT_TYPE, {
+                    enumerable: true,
+                    value: type
+                })
+                Object.defineProperty(res[RESPONSE_RESULT_CONTAINER], RESPONSE_RESULT, {
+                    enumerable: true,
+                    value: result
+                })
                 next()
             })
         }
@@ -373,6 +391,8 @@ export default function dafuq(config) {
             middlewares.push(upload.any())
 
         middlewares.push(executionMiddleware(file.absolute))
+        // Allow clients to do something with the responses before sending it
+        middlewares.push(...opts.middlewares)
         middlewares.push(resultMiddleware())
 
         opts.debug(`Adding ${ method } ${ url }`)
