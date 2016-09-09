@@ -199,6 +199,41 @@ describe('Constructor', function() {
             middlewares: [ {} ]
         }).should.throw();
     })
+
+    it('should throw if env is not an object',  function() {
+        build({
+            path: './commands',
+            env: {}
+        }).should.not.throw();
+        build({
+            path: './commands',
+            env: false
+        }).should.throw(/env/);
+        build({
+            path: './commands',
+            env: true
+        }).should.throw(/env/);
+        build({
+            path: './commands',
+            env: function() {}
+        }).should.throw();
+        build({
+            path: './commands',
+            env: ''
+        }).should.throw(/env/);
+        build({
+            path: './commands',
+            env: 'string'
+        }).should.throw(/env/);
+        build({
+            path: './commands',
+            env: 123
+        }).should.throw(/env/);
+        build({
+            path: './commands',
+            env: []
+        }).should.throw(/env/);
+    })
 })
 
 describe('Invoking a file', () => {
@@ -429,6 +464,38 @@ describe('Invoking a file', () => {
                     res.should.have.property('dafuq')
                     res.dafuq.should.have.property('type')
                 })
+                .end(done)
+        })
+    })
+
+    describe('specifing env', () => {
+        let app;
+
+        before(function() {
+            app = dafuq({
+                path: './commands',
+                env: {
+                    HELLO_NAME: 'Jhon'
+                }
+            });
+        })
+
+        it('should read the defined environment variables', (done) => {
+            request(app)
+                .get('/envecho')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(res => res.body.result.should.be.equal("Hello Jhon"))
+                .end(done)
+        })
+
+        it('should read other environment variables already defined', (done) => {
+            process.env['NODE_HELLO_NAME'] = 'Marc'
+            request(app)
+                .get('/envecho')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect(res => res.body.result.should.be.equal("Hello Marc"))
                 .end(done)
         })
     })

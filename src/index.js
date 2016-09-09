@@ -169,9 +169,9 @@ function buildCommandFlags(req) {
  * @param  {Function} cb  Completion callback. The result object and the
  *                        the result type are pased as arguments
  */
-function execCommand(command, timeout, cb) {
+function execCommand(command, env, timeout, cb) {
     const child = child_process.exec(command,
-        { timeout },
+        { env, timeout },
         (err, stdout, stderr) => {
             let code = 0
             if (err) {
@@ -274,7 +274,8 @@ export default function dafuq(config) {
         debug: false,
         brearer: '',
         timeout: 0,
-        middlewares: []
+        middlewares: [],
+        env: {}
     }, config)
 
     // Options validation
@@ -298,6 +299,10 @@ export default function dafuq(config) {
     // If middlewares provided, but not valid
     if (opts.middlewares !== undefined && !Array.isArray(opts.middlewares))
         throw new TypeError('middlewares must be a an array')
+
+    // If env provided, but not valid
+    if (opts.env !== undefined && (Array.isArray(opts.env) || typeof opts.env !== 'object'))
+        throw new TypeError('env must be a an object')
 
     if (opts.debug !== undefined) {
         if (opts.debug === true)
@@ -359,8 +364,11 @@ export default function dafuq(config) {
             */
             cmd += buildCommandFlags(req)
 
+            // Merge both, current env and added keys
+            const env = Object.assign({}, process.env, opts.env)
+
             opts.debug(`$ ${cmd}`)
-            execCommand(cmd, opts.timeout, (result, type) => {
+            execCommand(cmd, env, opts.timeout, (result, type) => {
                 Object.defineProperty(res[RESPONSE_RESULT_CONTAINER], RESPONSE_RESULT_TYPE, {
                     enumerable: true,
                     value: type
