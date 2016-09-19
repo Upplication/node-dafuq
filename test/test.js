@@ -275,7 +275,7 @@ describe('Invoking a file', () => {
                 .get('/bye')
                 .expect(200)
                 .expect('Content-Type', /json/)
-                .expect(res => res.body.result.should.be.equal('Bye World'))
+                .expect(res => res.body.message.should.be.equal('Bye World'))
                 .end(done)
         })
 
@@ -295,7 +295,7 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .expect(res => { res.body.success.should.be.false() })
-                .expect(res => res.body.result.should.be.eql({ 'foo': 'bar' }))
+                .expect(res => res.body.message.should.be.eql({ 'foo': 'bar' }))
                 .end(done)
         })
 
@@ -386,7 +386,7 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .expect(res => res.body.success.should.be.false())
-                .expect(res => res.body.result.should.match(/timeout/))
+                .expect(res => res.body.message.should.match(/timeout/))
                 .end(done)
         })
     })

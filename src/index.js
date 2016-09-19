@@ -205,6 +205,14 @@ function execCommand(command, env, timeout, cb) {
                 }
             }
 
+            // If success was false, rename the result field to message
+            if (result.success === false) {
+                result = {
+                    success: result.success,
+                    message: result.result
+                }
+            }
+
             cb(result, type)
         }
     )
