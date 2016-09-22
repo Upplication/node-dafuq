@@ -360,7 +360,7 @@ export default function dafuq(config) {
             Object.defineProperty(res, RESPONSE_RESULT_CONTAINER, { value: {} })
 
             // Build the base command
-            let cmd = file
+            let cmd = file.replace(/\s/g, '\\ ') // Escape blanks on the file path
             if (opts.shebang)
                 cmd = `${ opts.shebang } ${ cmd }`
             /*
