@@ -198,18 +198,12 @@ function execCommand(command, env, timeout, cb) {
                 // If the result doesn't contain the field success, treat its
                 // contents as the result part and add the succes field
                 if (result.success === undefined) {
-                    result = {
-                        success: code === 0,
-                        result: result
-                    }
-                }
-            }
+                    var success = code === 0
 
-            // If success was false, rename the result field to message
-            if (result.success === false) {
-                result = {
-                    success: result.success,
-                    message: result.result
+                    result = {
+                        success: success,
+                        [ success ? 'result' : 'message' ]: result
+                    }
                 }
             }
 

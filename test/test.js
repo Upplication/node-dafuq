@@ -285,6 +285,7 @@ describe('Invoking a file', () => {
                 .get('/json')
                 .expect(200)
                 .expect('Content-Type', /json/)
+                .expect(res => { res.body.success.should.be.true() })
                 .expect(res => res.body.result.should.be.eql({ 'foo': 'bar' }))
                 .end(done)
         })
@@ -295,7 +296,7 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .expect(res => { res.body.success.should.be.false() })
-                .expect(res => res.body.message.should.be.eql({ 'foo': 'bar' }))
+                .expect(res => res.body.result.should.be.eql({ 'foo': 'bar' }))
                 .end(done)
         })
 

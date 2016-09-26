@@ -46,7 +46,7 @@
     "express",
     "middleware",
     "execute",
-    "exec"
+    "exec",
     "process"
   ],
   "nyc": {
