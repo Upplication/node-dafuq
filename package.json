@@ -39,6 +39,16 @@
   "bin": {
     "dafuq": "lib/cli.js"
   },
+  "keywords": [
+    "command",
+    "commands",
+    "api",
+    "express",
+    "middleware",
+    "execute",
+    "exec"
+    "process"
+  ],
   "nyc": {
     "sourceMap": false,
     "instrument": false
