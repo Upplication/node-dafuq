@@ -255,6 +255,8 @@ function resultMiddleware() {
         const result = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT]
           ,   type = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT_TYPE]
 
+        res.set('X-Success', result.success !== false);
+
         if (type === RESULT_TYPE_OBJECT)
             res.type('json').json(result)
         else if (type === RESULT_TYPE_FILE)

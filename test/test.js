@@ -252,6 +252,15 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
+        it('should return success true on the X-Success header after executing the command', (done) => {
+            request(app)
+                .get('/hello')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect('X-Success', 'true')
+                .end(done)
+        })
+
         it('should return the output of executing the command', (done) => {
             request(app)
                 .get('/hello')
@@ -267,6 +276,15 @@ describe('Invoking a file', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .expect(res => res.body.success.should.be.false())
+                .end(done)
+        })
+
+        it('should return success false on the X-Succes header if command exits with code different from 0', (done) => {
+            request(app)
+                .get('/bye')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .expect('X-Success', 'false')
                 .end(done)
         })
 
@@ -305,6 +323,7 @@ describe('Invoking a file', () => {
                 .get('/download')
                 .expect(200)
                 .expect('Content-Disposition', /attachment/)
+                .expect('X-Success', 'true')
                 .expect(res => res.text.should.not.be.empty())
                 .end(done)
         })

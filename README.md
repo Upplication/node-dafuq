@@ -149,6 +149,8 @@ When a command is ran the output will be determined by this steps:
 * **Else if success was `true`**: The output of the command is placed on a `result` property. If the output was *JSON-parseable*, it will be parsed.
 * **Else if success was `false`**: The output of the command is placed on a `message` property. If the output was *JSON-parseable*, it will be parsed.
 
+Also, the success value is added to the header `X-Success`.
+
 ### Sending a file
 There is an exception to the [Building the response] description. If the command exits with an exit code equal to `10` dafuq assumes you want to return a file instead of a JSON. In this case the output of your command should be **strictly** and **only** the absolute path you want to serve. Don't worry about breaklines or blankspaces, the output will be trimmed before working with it.
 
