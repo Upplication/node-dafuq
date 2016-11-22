@@ -618,4 +618,35 @@ describe('Arguments', () => {
             .expect(res => res.body.result.should.be.equal('Hello Sarah \\"Connor\\"'))
             .end(done)
     })
+
+    it('should pass complex json as flattened paths', (done) => {
+        const body = {
+            names: [
+                'Sarah',
+                'Arnold'
+            ],
+            surnames: [
+                'Connor',
+                'Swacheneger'
+            ],
+            films: {
+                'terminator': 9
+            }
+        }
+        const expectedBody = [
+            'names.0:Sarah',
+            'names.1:Arnold',
+            'surnames.0:Connor',
+            'surnames.1:Swacheneger',
+            'films.terminator:9'
+        ].join('\n')
+
+        request(app)
+            .post('/json')
+            .send(body)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal(expectedBody))
+            .end(done)
+    })
 })

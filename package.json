@@ -19,6 +19,7 @@
     "express": "^4.14.0",
     "glob": "^7.0.5",
     "multer": "^1.2.0",
+    "traverse": "^0.6.6",
     "yargs": "^5.0.0"
   },
   "devDependencies": {

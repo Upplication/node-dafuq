@@ -83,28 +83,44 @@ Then, any request that reaches the server and matches one of the directories and
 Dafuq translates any parameter on the request to command line flags with double dash `--`. The request fields searched for parmeters and its override order is as follows (upper means it will prevail in case of name clashing):
 * Multipart files
 * Multipart form fields
-* Body fields
+* Body fields: Can be URL encoded or JSON. Multilevel object structures will be flattened full path key
 * URL params: (parts of the url that start with `:`)
 * Query Params
 * Headers: (the ones starting with `X-Arg-`)
 
 ```
-POST /hello/john?age=12&male HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
+POST /hello/john?age=25&male HTTP/1.1
+Content-Type: application/json
 Content-Length: 100
 X-Arg-username: jhon78
 
-surname=wick&profession=killer
+{
+  "surname": "wick",
+  "profession": "killer",
+  "confirmedKills": [
+    "target1",
+    "target2"
+  ],
+  "ammo": {
+    "usp": 12
+    "ump": 25
+  }
+}
+
 ```
 would be equivalent to the following command
 ```
 ./hello/\:name/get.sh \
-	--name john \
-	--surname wick \
-	--username username \
-	--age 12 \
-	--male \
-	--profession killer
+    --name "john" \
+    --surname "wick" \
+    --username "jhon78" \
+    --age "25" \
+    --male \
+    --profession "killer" \
+    --confirmedKills.0 "target1" \
+    --confirmedKills.1 "target2" \
+    --ammo.usp "12" \
+    --ammo.ump "25"
 ```
 
 ### Recieving Files

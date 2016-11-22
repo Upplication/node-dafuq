@@ -5,6 +5,7 @@ const fs = require('fs')
   ,   child_process = require('child_process')
   ,   debug = require('debug')
   ,   glob = require('glob')
+  ,   traverse = require('traverse')
   ,   express = require('express')
   ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
@@ -131,12 +132,19 @@ function buildCommandFlags(req) {
         return files
     }, {})
 
-    const flags = Object.assign({}, headerFlags, req.query, req.params, req.body, uploadFlags)
+    // Flatten the body
+    const body = traverse(req.body).reduce(function(b, val) {
+        if (this.notRoot && this.isLeaf)
+            b[this.path.join('.')] = val
+        return b
+    }, {})
+
+    const flags = Object.assign({}, headerFlags, req.query, req.params, body, uploadFlags)
     Object.keys(flags).forEach(function(flagName) {
         let flagValue = flags[flagName]
         cmdFlags += ` --${flagName}`
-        if (flagValue) {
-            flagValue = flagValue
+        if (flagValue !== undefined) {
+            flagValue = String(flagValue)
                             .replace(/\\/g, '\\\\')
                             .replace(/"/g, '\\"')
             cmdFlags += ` "${flagValue}"`
