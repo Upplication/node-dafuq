@@ -15,7 +15,7 @@ dafuq allows you to create an api that executes files on the os command line (vi
 ### Options
 * **commands**: Path where to look for commands to run on requests.
 * **shebang** (optional): If specified, this will be the command line interpreter to be used when running the file. If it is not specified we will check the file for execution permisions and run it by itself. Defaults to `''`.
-* **debug** (optional): Show debug info. If true, `console.log` will be used as loggin function. If a function it will used as loggin function instead of the default . Defaults to `false`.
+* **debug** (optional): Log debug function. A function that will used as loggin function instead of the default . Defaults to `debug('dafuq')`.
 * **bearer** (optional): Add bearer token authorization method to the api. The acces token is provided as the value of this config. Defaults to ''
 * **timeout** (optional): Time to wait before killing an spawned command. Defaults to `0` which means infinite.
 * **middlewares** (optional): Array of middlewares that will be executed after the command has run but before sending the api respnse. The response object has a `dafuq` property containing `result` and `type` properties with the result of the execution.

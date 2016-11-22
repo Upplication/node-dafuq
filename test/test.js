@@ -9,7 +9,7 @@ describe('Constructor', function() {
 
     const build = function(opts) {
         return function() {
-            dafuq(opts)
+            return dafuq(opts)
         }
     }
 
@@ -109,19 +109,19 @@ describe('Constructor', function() {
         }).should.throw(/timeout/);
     })
 
-    it('should throw if debug is not a boolean nor a function',  function() {
-        build({
-            path: './commands',
-            debug: false
-        }).should.not.throw();
-        build({
-            path: './commands',
-            debug: true
-        }).should.not.throw();
+    it('should throw if debug is not a function',  function() {
         build({
             path: './commands',
             debug: function() {}
         }).should.not.throw();
+        build({
+            path: './commands',
+            debug: false
+        }).should.throw();
+        build({
+            path: './commands',
+            debug: true
+        }).should.throw();
         build({
             path: './commands',
             debug: ''
@@ -576,6 +576,46 @@ describe('Arguments', () => {
             .expect(200)
             .expect('Content-Type', /json/)
             .expect(res => res.body.result.should.be.equal("Hello Jhon"))
+            .end(done)
+    })
+
+    it('should pass arguments containing blank spaces', (done) => {
+        request(app)
+            .get('/hello')
+            .query({ name: 'Sarah Connor'})
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal("Hello Sarah Connor"))
+            .end(done)
+    })
+
+    it('should pass arguments containing double quotes', (done) => {
+        request(app)
+            .get('/hello')
+            .query({ name: 'Sarah "Connor"'})
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal("Hello Sarah \"Connor\""))
+            .end(done)
+    })
+
+    it('should pass arguments containing backslashes', (done) => {
+        request(app)
+            .get('/hello')
+            .query({ name: 'Sarah\\ Connor'})
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal("Hello Sarah\\ Connor"))
+            .end(done)
+    })
+
+    it('should pass arguments containing backslashes and double quotes', (done) => {
+        request(app)
+            .get('/hello')
+            .query({ name: 'Sarah \\"Connor\\"'})
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal('Hello Sarah \\"Connor\\"'))
             .end(done)
     })
 })

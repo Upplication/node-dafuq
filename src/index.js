@@ -3,12 +3,13 @@ const fs = require('fs')
   ,   path = require('path')
   ,   assert = require('assert')
   ,   child_process = require('child_process')
+  ,   debug = require('debug')
   ,   glob = require('glob')
   ,   express = require('express')
   ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
 
-const IS_TEST = process.env['NODE_ENV'] === 'test'
+const LOG = debug('dafuq')
 
 const RESPONSE_RESULT_CONTAINER = 'dafuq'
 const RESPONSE_RESULT_TYPE = 'type'
@@ -132,10 +133,14 @@ function buildCommandFlags(req) {
 
     const flags = Object.assign({}, headerFlags, req.query, req.params, req.body, uploadFlags)
     Object.keys(flags).forEach(function(flagName) {
-        const flagValue = flags[flagName]
+        let flagValue = flags[flagName]
         cmdFlags += ` --${flagName}`
-        if (flagValue)
+        if (flagValue) {
+            flagValue = flagValue
+                            .replace(/\\/g, '\\\\')
+                            .replace(/"/g, '\\"')
             cmdFlags += ` "${flagValue}"`
+        }
     })
 
     return cmdFlags
@@ -275,7 +280,7 @@ export default function dafuq(config) {
     // Assign default values
     const opts = Object.assign({
         shebang: '',
-        debug: false,
+        debug: LOG,
         brearer: '',
         timeout: 0,
         middlewares: [],
@@ -308,14 +313,8 @@ export default function dafuq(config) {
     if (opts.env !== undefined && (Array.isArray(opts.env) || typeof opts.env !== 'object'))
         throw new TypeError('env must be a an object')
 
-    if (opts.debug !== undefined) {
-        if (opts.debug === true)
-            opts.debug = IS_TEST ? (() => {}) : console.log
-        else if (opts.debug === false)
-            opts.debug = (() => {})
-        else if (typeof opts.debug !== 'function')
-            throw new TypeError('debug must be a boolean or a logging function')
-    }
+    if (opts.debug !== undefined && typeof opts.debug !== 'function')
+        throw new TypeError('debug must be a logging function')
 
     opts.debug('Building dafuq instance with %j', config)
 
