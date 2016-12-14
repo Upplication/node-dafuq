@@ -6,6 +6,7 @@ const fs = require('fs')
   ,   debug = require('debug')
   ,   glob = require('glob')
   ,   traverse = require('traverse')
+  ,   async = require('async')
   ,   express = require('express')
   ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
@@ -279,6 +280,41 @@ function resultMiddleware() {
     }
 }
 
+/**
+ * Renames a file from the multer DiskStorage into a more expresive name.
+ * It moves the temporal file by adding the original filename at the end.
+ * For example, it would move `/tmp/d41d8cd98f00b204e9800998ecf8427e` to
+ * `/tmp/d41d8cd98f00b204e9800998ecf8427e-image.jpg`.
+ *
+ * @param  {Object}   file From multer DiskStorage middleware
+ * @param  {Function} cb
+ */
+function renameTemporalFile(file, cb) {
+    const newFile = Object.assign({}, file, {
+        filename: `${ file.filename }-${ file.originalname }`,
+        path: `${ file.path }-${ file.originalname }`
+    })
+    fs.rename(file.path, newFile.path, err => cb(err, newFile))
+}
+
+/**
+ * Returns a middleware that will rename every file available by using
+ * {@link renameTemporalFile}.
+ *
+ * @return {Function} Middleware function
+ * @see renameTemporalFile
+ */
+function uploadRenameMiddleware() {
+    return (req, res, next) => {
+        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            async.map(req.files, renameTemporalFile, (err, files) => {
+                req.files = files
+                next(err)
+            })
+        } else
+            next()
+    }
+}
 export default function dafuq(config) {
 
     // Allow constructor to be only the commands directory
@@ -406,8 +442,10 @@ export default function dafuq(config) {
 
         // If the method is not any of the "get" methods add the multipart
         // upload middleware
-        if (method !== 'get' && method !== 'head' && method !== 'options')
+        if (method !== 'get' && method !== 'head' && method !== 'options') {
             middlewares.push(upload.any())
+            middlewares.push(uploadRenameMiddleware())
+        }
 
         middlewares.push(executionMiddleware(file.absolute))
         // Allow clients to do something with the responses before sending it

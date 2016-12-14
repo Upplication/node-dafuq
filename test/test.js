@@ -339,6 +339,17 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
+        it('should upload a file to a path containing the original file name', (done) => {
+            request(app)
+                .post('/multipart-filename')
+                .attach('file', __filename)
+                .expect(200)
+                .expect(res => {
+                    res.body.result.should.endWith(p.basename(__filename))
+                })
+                .end(done)
+        })
+
         it('should not create a route when a file doesn\'t have execute permissions', (done) => {
             request(app)
                 .get('/no-exec')
