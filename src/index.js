@@ -11,11 +11,8 @@ const fs = require('fs')
   ,   multer = require('multer')
   ,   bodyParser = require('body-parser')
 
-const LOG = debug('dafuq')
-
-const RESPONSE_RESULT_CONTAINER = 'dafuq'
-const RESPONSE_RESULT_TYPE = 'type'
-const RESPONSE_RESULT = 'result'
+const LIB_NAME = 'dafuq'
+const LOG = debug(LIB_NAME)
 
 /**
  * @typedef DafuqPath
@@ -26,21 +23,34 @@ const RESPONSE_RESULT = 'result'
  */
 
 /**
- * Exit code that determines a file response should be used instead of JSON
- * @type {Number}
+ * Commands that exit with this codes will be treated differently
+ * @readonly
+ * @enum {number}
  */
-const EXIT_CODE_FILE = 10
+const EXIT_CODE = {
+    // Commands exiting with this code are expected to output a path to a file
+    // which should be sent as the response body
+    FILE: 10,
+    // Commands exiting with this code are telling dafuq that they ended as
+    // an "error" (which will cause the success field sent on the response to
+    // be false), but that the error was handled inside the code. This enables
+    // us to tell the difference between unhandled errors (exit code 1)
+    // and command-side handled ones
+    HANDLED_ERROR: 11,
+}
 
 /**
  * Result types when executing a command
- * @type {String}
  */
-const RESULT_TYPE_OBJECT = 'object'
-const RESULT_TYPE_FILE = 'file'
+const RESULT_TYPE = {
+    STRING: 'string',
+    OBJECT: 'object',
+    FILE: 'file',
+}
 
 /**
  * Asserts the provided **absolute** path is a directory
- * 
+ *
  * @param  {String} path - the path to check if is a directory
  * @return {String} the provided path
  * @throws {AssertionError} If the path is not a directory
@@ -93,7 +103,7 @@ function isExecutable(path) {
     try {
         const stats = fs.statSync(path)
         return !!(stats.mode & MASK_EXEC)
-    } catch(e) { return false }        
+    } catch(e) { return false }
 }
 
 /**
@@ -187,41 +197,49 @@ function execCommand(command, env, timeout, cb) {
     const child = child_process.exec(command,
         { env, timeout },
         (err, stdout, stderr) => {
-            let code = 0
-            if (err) {
-                code = err.code || 1
-                if (err.killed === true)
-                    err = new Error('Command killed due timeout')
+            if (err && err.killed === true) {
+                cb('Command killed due timeout')
+                return
             }
 
-            let result =  stderr || stdout || (err || {}).message
-            let type = RESULT_TYPE_OBJECT
+            let exitCode = ((err || {}).code) || 0
+            let output = stderr || stdout || (err || {}).message
+            output = output.trim()
 
-            if (result)
-                result = result.trim()
+            if (exitCode === EXIT_CODE.FILE) {
+                const execution = {}
+                Object.defineProperties(execution, {
+                    type: { value: RESULT_TYPE.FILE },
+                    output: { value: output },
+                })
+                return cb(null, execution)
+            } else if (exitCode === EXIT_CODE.HANDLED_ERROR || exitCode === 0) {
+                const success = exitCode === 0
+                let result = output
 
-            if (code === EXIT_CODE_FILE) {
-                type = RESULT_TYPE_FILE
-            } else {
                 try {
                     // Try to parse it as JSON
-                    const json = JSON.parse(result)
+                    const json = JSON.parse(output)
                     result = json
-                } catch(e) {} // If an error occurs parsing the json leave it as it was
+                } catch(e) {}
 
-                // If the result doesn't contain the field success, treat its
-                // contents as the result part and add the succes field
-                if (result.success === undefined) {
-                    var success = code === 0
-
+                if (!result.hasOwnProperty('success')) {
+                    // If the output is not a fully formed response api, build it ourselves
                     result = {
                         success: success,
                         [ success ? 'result' : 'message' ]: result
                     }
                 }
-            }
 
-            cb(result, type)
+                const execution = {}
+                Object.defineProperties(execution, {
+                    type: { value: RESULT_TYPE.OBJECT },
+                    output: { value: result },
+                })
+                return cb(null, execution)
+            } else { // Unhandled error
+                return cb(output)
+            }
         }
     )
 }
@@ -259,6 +277,37 @@ function accessMiddleware(token) {
 }
 
 /**
+ * Returns a middleware that once invoked will execute the specified file and
+ * put the result of its execution on response object in the property pointed
+ * by moduleName.
+ *
+ * @param  {String} file
+ * @param  {object} otps - dafuq options
+ * @return {Function}     Middleware function
+ */
+function executionMiddleware(file, opts) {
+    return (req, res, next) => {
+        // Initialize the dafuq result container
+
+        // Build the base command
+        let cmd = file.replace(/\s/g, '\\ ') // Escape blanks on the file path
+        if (opts.shebang)
+            cmd = `${ opts.shebang } ${ cmd }`
+        cmd += buildCommandFlags(req)
+
+        // Merge both, current env and added keys
+        const env = Object.assign({}, process.env, opts.env)
+
+        opts.debug(`$ ${cmd}`)
+        execCommand(cmd, env, opts.timeout, (error, data) => {
+            Object.defineProperty(res, LIB_NAME, { value: data || {} })
+            Object.defineProperty(res[LIB_NAME], 'error', { value: error || null })
+            next()
+        })
+    }
+}
+
+/**
  * Returns a middleware that will end the response sending
  * the result of the dafuq execution.
  *
@@ -266,17 +315,23 @@ function accessMiddleware(token) {
  */
 function resultMiddleware() {
     return (req, res, next) => {
-        const result = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT]
-          ,   type = res[RESPONSE_RESULT_CONTAINER][RESPONSE_RESULT_TYPE]
+        const execution = res[LIB_NAME]
+        const error = res[LIB_NAME]['error']
 
-        res.set('X-Success', result.success !== false);
-
-        if (type === RESULT_TYPE_OBJECT)
-            res.type('json').json(result)
-        else if (type === RESULT_TYPE_FILE)
-            res.download(result)
-        else // This shouldn't happen, but just in case
-            res.status(500).send()
+        if (error) {
+            res.status(500)
+                .set('X-Success', false)
+                .type('text/plain')
+                .send(error)
+        } else if (execution.type === RESULT_TYPE.FILE) {
+            res.status(200)
+                .set('X-Success', true)
+                .download(execution.output)
+        } else {
+            res.status(200)
+                .set('X-Success', execution.output.success)
+                .type('json').json(execution.output)
+        }
     }
 }
 
@@ -315,6 +370,7 @@ function uploadRenameMiddleware() {
             next()
     }
 }
+
 export default function dafuq(config) {
 
     // Allow constructor to be only the commands directory
@@ -385,50 +441,6 @@ export default function dafuq(config) {
     app.use(bodyParser.urlencoded({ extended: false }))
     app.use(bodyParser.json())
 
-    /**
-     * Returns a middleware that once inkoed will execute the specified file and
-     * put the result of its execution on response object in the property pointed
-     * by moduleName.
-     *
-     * @param  {String} file
-     * @return {Function}     Middleware function
-     */
-    function executionMiddleware(file) {
-        return (req, res, next) => {
-            // Initialize the dafuq result container
-            Object.defineProperty(res, RESPONSE_RESULT_CONTAINER, { value: {} })
-
-            // Build the base command
-            let cmd = file.replace(/\s/g, '\\ ') // Escape blanks on the file path
-            if (opts.shebang)
-                cmd = `${ opts.shebang } ${ cmd }`
-            /*
-             Append all the parameters provided via:
-                * query params
-                * url params
-                * body members
-                * x-args headers
-            */
-            cmd += buildCommandFlags(req)
-
-            // Merge both, current env and added keys
-            const env = Object.assign({}, process.env, opts.env)
-
-            opts.debug(`$ ${cmd}`)
-            execCommand(cmd, env, opts.timeout, (result, type) => {
-                Object.defineProperty(res[RESPONSE_RESULT_CONTAINER], RESPONSE_RESULT_TYPE, {
-                    enumerable: true,
-                    value: type
-                })
-                Object.defineProperty(res[RESPONSE_RESULT_CONTAINER], RESPONSE_RESULT, {
-                    enumerable: true,
-                    value: result
-                })
-                next()
-            })
-        }
-    }
-
     // Add all the files routes
     files.forEach(file => {
         const filePath = file.relative
@@ -447,7 +459,7 @@ export default function dafuq(config) {
             middlewares.push(uploadRenameMiddleware())
         }
 
-        middlewares.push(executionMiddleware(file.absolute))
+        middlewares.push(executionMiddleware(file.absolute, opts))
         // Allow clients to do something with the responses before sending it
         middlewares.push(...opts.middlewares)
         middlewares.push(resultMiddleware())

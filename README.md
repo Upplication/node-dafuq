@@ -8,7 +8,7 @@
 
 [![dafuq][dafuq-logo]](http://i1.kym-cdn.com/photos/images/newsfeed/000/290/698/c3e.jpg)
 
-dafuq allows you to create an api that executes files on the os command line (via `child_process.exec`) and returns the output generated through a JSON API.
+dafuq allows you to create an API that executes files on the os command line (via `child_process.exec`) and returns the output generated through a JSON API.
 
 ## dafuq(opts)
 
@@ -16,9 +16,9 @@ dafuq allows you to create an api that executes files on the os command line (vi
 * **commands**: Path where to look for commands to run on requests.
 * **shebang** (optional): If specified, this will be the command line interpreter to be used when running the file. If it is not specified we will check the file for execution permisions and run it by itself. Defaults to `''`.
 * **debug** (optional): Log debug function. A function that will used as loggin function instead of the default . Defaults to `debug('dafuq')`.
-* **bearer** (optional): Add bearer token authorization method to the api. The acces token is provided as the value of this config. Defaults to ''
+* **bearer** (optional): Add bearer token authorization method to the api. The acces token is provided as the value of this config. Defaults to `''`
 * **timeout** (optional): Time to wait before killing an spawned command. Defaults to `0` which means infinite.
-* **middlewares** (optional): Array of middlewares that will be executed after the command has run but before sending the api respnse. The response object has a `dafuq` property containing `result` and `type` properties with the result of the execution.
+* **middlewares** (optional): Array of middleware functions that will be executed after the command has run but before sending the API respnse. See [middlewares](#middlewares)
 * **env** (optional): Object of environment variables to set when executing the spawned commands.
 
 ### Example
@@ -76,15 +76,15 @@ $ dafuq \
 ## Considerations
 
 ### Directory Structure
-On init, dafuq searches for all the files named like an http method (with extension) and creates a route for that method at the path of the file.
-Then, any request that reaches the server and matches one of the directories and method will trigger an execution of the file and return its output.
+On init, dafuq searches for all the files named like an http method (with extension) and creates a route for that HTTP method at the path of the file.
+Then, any request that reaches the server that matches one of the directories and method will trigger an execution of the file and return its output.
 
 ### Command arguments/parameters
-Dafuq translates any parameter on the request to command line flags with double dash `--`. The request fields searched for parmeters and its override order is as follows (upper means it will prevail in case of name clashing):
+Dafuq translates any parameter on the request to command line flags with double dash `--`. The request fields parsed as parmeters and its override order is as follows (upper means it will prevail in case of name clashing):
 * Multipart files
 * Multipart form fields
-* Body fields: Can be URL encoded or JSON. Multilevel object structures will be flattened full path key
-* URL params: (parts of the url that start with `:`)
+* Body fields: Can be URL encoded or JSON. Nested object structures will be flattened to a plain key-value object.
+* URL params: (directories that start with `:`)
 * Query Params
 * Headers: (the ones starting with `X-Arg-`)
 
@@ -157,18 +157,90 @@ would be equivalent to the following command
 	--file2 /tmp/upload-1886474873952
 ```
 
-### Building the resposne
-If the exit code of the command was different from 0 it will be taken as unsuccessful (almost every time, see [Sending a file]).
+### Building the response
+Once a command finishes running, the following checks happen
 
-When a command is ran the output will be determined by this steps:
-* **If the output of the command is parseable as JSON and contains a success property**: the whole command output is considered the final response that will be sent, ignoring the previous success value.
-* **Else if success was `true`**: The output of the command is placed on a `result` property. If the output was *JSON-parseable*, it will be parsed.
-* **Else if success was `false`**: The output of the command is placed on a `message` property. If the output was *JSON-parseable*, it will be parsed.
+- **If execution exit code is 0**: Command [output](#detrmining-the-output) is [parsed](#parsing-the-output) and sent as the response.
+- **If execution exit code is 1**: Command [output](#detrmining-the-output) is sent as a `text/plain` response.
+- **If execution exit code is 11**: Command [output](#detrmining-the-output) is [parsed](#parsing-the-output) and returned as the response, the main difference here is this allows the command executions to be marked as failed but prevent them from generating a Internal server error (500).
+- **If execution exit code is 10**: Command output is expected to be an absolute path that points to a file that will be sent as an attachment on the response.
 
-Also, the success value is added to the header `X-Success`.
+#### Determining the output
+The output of the command is taken from the `stderr` if any, and if not, from the `stdout`. Whatever the result is taken, the output is trimmed before passing it to further steps. **TODO:** Use stderr only if the execution is marked as failed.
 
-### Sending a file
-There is an exception to the [Building the response] description. If the command exits with an exit code equal to `10` dafuq assumes you want to return a file instead of a JSON. In this case the output of your command should be **strictly** and **only** the absolute path you want to serve. Don't worry about breaklines or blankspaces, the output will be trimmed before working with it.
+#### Parsing the output
+The response sent by the server will always be of the form:
+```ts
+{
+  success: boolean,
+  result?: string|object|array,
+  message?: string,
+}
+```
+
+The `result` property is determined as follows:
+- If the output is JSON-parseable and contains a `success` field the whole output is considered the final response body to be sent to the client.
+- If the output is JSON parseable: the parsed JSON object is assigned to `result`. The value of `success` is set based on the exit code, see [Building the response](#building-the-response).
+- If the output is not JSON parseable: the output is set as a string on the `result` property. The value of `success` is set based on the exit code, see [Building the response](#building-the-response).
+
+### Middlewares
+Dafuq middleware functions are the same concept as express middlewares. These allow dafuq users to perform actions on the execution result **before** sending it to api consumers.
+```js
+
+/**
+ * @typedef {object} res.dafuq
+ * @property {string} type - based on the command exit code, can be "object"
+ *                         or "file"
+ * @property {string?} error - Output of the command after its execution was
+ *                          determined to be a failure.
+ * @property {object|string} output - Parsed output of the command.
+ */
+
+/** Log the dafuq execution error */
+function loggingMiddleware(req, res, next) {
+  /**
+   * From now on, res.dafuq is defined, see {@link #res.dafuq}
+   */
+
+  // Log the execution information
+  if (res.dafuq.error)
+    logger.error(res.dafuq.error)
+  else
+    logger.info('type=', res.dafuq.type, 'output=', res.dafuq.output)
+
+  // Don't forget to mark execution complete from within the middleware!
+  next()
+}
+```
+
+Dafuq middlewares are also allowed to change the dafuq response in any way or manner, **but be aware of execution failures**
+```js
+function adaptingMiddleware(req, res, next) {
+  // If the execution was a failure res.dafuq will
+  // only contain a non enumerable property called error, so
+  // check that first!
+  if (!res.dafuq.error) {
+    const output = res.dafuq.output
+    Object.assign(output, {
+      // rename success to ok
+      ok: output.success,
+      success: undefined,
+      // rename result to data
+      data: output.result,
+      result: undefined,
+    })
+    // Note: res.dafuq, res.dafuq.type, res.dafuq.output are non
+    // writable, meaning that the following code WOULD FAIL on runtime
+    res.dafuq.output = {
+      ok: res.dafuq.output.success,
+      data: res.dafuq.output.result,
+    }
+  }
+
+  // Don't forget to mark execution complete from within the middleware!
+  next()
+}
+```
 
 ## Motivation
 Ok, so you just discovered a really neat tool/library but... *oh, oh* its written in **THAT LANGUAGE**. All your dreams of api-fing that thing just blew up because you just wanted to run a little few commands here and there.

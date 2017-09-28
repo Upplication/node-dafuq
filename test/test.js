@@ -1,4 +1,4 @@
-require('should')
+const should = require('should')
 const p = require('path')
 const fs = require('fs')
 const request = require('supertest')
@@ -270,7 +270,7 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
-        it('should return success false if command exits with code different from 0', (done) => {
+        it('should return success false if command exits with code 11', (done) => {
             request(app)
                 .get('/bye')
                 .expect(200)
@@ -279,7 +279,7 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
-        it('should return success false on the X-Succes header if command exits with code different from 0', (done) => {
+        it('should return success false on the X-Succes header if command exits with code 11', (done) => {
             request(app)
                 .get('/bye')
                 .expect(200)
@@ -288,7 +288,7 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
-        it('should return the output of executing the command even when it exits with code different from 0', (done) => {
+        it('should return the stderr output of executing the command even when it exits with code 11', (done) => {
             request(app)
                 .get('/bye')
                 .expect(200)
@@ -297,6 +297,17 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
+        it('should return the stderr output of executing the command even when it exits with code != 11 as plain text and 500', (done) => {
+            request(app)
+                .get('/critical')
+                .expect(500)
+                .expect('Content-Type', /plain/)
+                .expect(res => {
+                    should(res.serverError).be.true()
+                    should(res.error.text).containEql('I did nothing wrong')
+                })
+                .end(done)
+        })
 
         it('should return the parsed output of executing a command that outputs JSON', (done) => {
             request(app)
@@ -414,10 +425,9 @@ describe('Invoking a file', () => {
         it('should kill the process if takes longer than the timeout', (done) => {
             request(app)
                 .get('/hangup')
-                .expect(200)
-                .expect('Content-Type', /json/)
-                .expect(res => res.body.success.should.be.false())
-                .expect(res => res.body.message.should.match(/timeout/))
+                .expect(500)
+                .expect('Content-Type', /text/)
+                .expect(res => res.body.should.match(/timeout/))
                 .end(done)
         })
     })
@@ -458,7 +468,7 @@ describe('Invoking a file', () => {
             spy2.reset()
         })
 
-        it('should call each middleware once in order of definition', (done) => {
+        it('calls each middleware once in order of definition', (done) => {
             request(app)
                 .get('/hello')
                 .expect(200)
@@ -471,32 +481,36 @@ describe('Invoking a file', () => {
                 .end(done)
         })
 
-        it('should pass each middleware the result type of execution', (done) => {
+        it('response object has a "dafuq" property (a.k.a. res.dafuq)', (done) => {
             request(app)
                 .get('/hello')
-                .expect(200)
-                .expect('Content-Type', /json/)
                 .expect(response => {
                     const [ req, res, next ] = spy1.args[0]
-                    res.should.have.property('dafuq')
-                    res.dafuq.should.have.property('result')
-                    response.body.should.be.eql(res.dafuq.result)
+                    should(res).have.property('dafuq')
                 })
                 .end(done)
         })
 
-        it('should pass each middleware the result of execution', (done) => {
+        it('res.dafuq has "type" and "output" properties', (done) => {
             request(app)
                 .get('/hello')
-                .expect(200)
-                .expect('Content-Type', /json/)
                 .expect(response => {
                     const [ req, res, next ] = spy1.args[0]
-                    res.should.have.property('dafuq')
-                    res.dafuq.should.have.property('type')
+                    should(res.dafuq).have.properties([ 'type', 'output' ])
                 })
                 .end(done)
         })
+
+        it('res.dafuq has "error" property when command fails', (done) => {
+            request(app)
+                .get('/critical')
+                .expect(response => {
+                    const [ req, res, next ] = spy1.args[0]
+                    should(res.dafuq).have.property('error')
+                })
+                .end(done)
+        })
+
     })
 
     describe('specifing env', () => {

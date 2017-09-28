@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const path = require('path')
   ,   express = require('express')
+  ,   debug = require('debug')
   ,   app = express()
   ,   dafuq = require('./')
 
-var argv = require('yargs')
+const argv = require('yargs')
     .usage('$0 Leverages a command-based api')
     .describe('commands', 'the path to commands directory')
     // commands
@@ -46,7 +47,7 @@ if (require.main === module)
 app.use(dafuq({
     path: argv.commands,
     shebang: argv.shebang,
-    debug: argv.debug,
+    debug: argv.debug ? debug('dafuq') : () => {},
     timeout: argv.timeout
 }))
 app.listen(argv.port)
