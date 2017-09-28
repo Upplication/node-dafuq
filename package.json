@@ -1,6 +1,6 @@
 {
   "name": "dafuq",
-  "version": "1.6.1",
+  "version": "2.0.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
