@@ -5,6 +5,8 @@ const request = require('supertest')
 const sinon = require('sinon')
 const dafuq = require(process.env['DAFUQ_COVERAGE'] ? '../src-cov' : '../src')
 
+const COMMANDS_PATH = './fixtures/commands';
+
 describe('Constructor', function() {
 
     const build = function(opts) {
@@ -44,193 +46,193 @@ describe('Constructor', function() {
     })
 
     it('should work with a valid relative directory', () => {
-        build({ path: '../test/commands' }).should.not.throw();
-        build({ path: './commands' }).should.not.throw();
+        build({ path: '../test/fixtures/commands' }).should.not.throw();
+        build({ path: COMMANDS_PATH }).should.not.throw();
     })
 
     it('should work with a valid absolute directory', () => {
-        build({ path: p.resolve(__dirname, './commands') }).should.not.throw();
+        build({ path: p.resolve(__dirname, COMMANDS_PATH) }).should.not.throw();
     })
 
     it('should throw if shebang is not a valid string',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             bearer: 'shebang'
         }).should.not.throw(/shebang/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             shebang: 1
         }).should.throw(/shebang/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             shebang: {}
         }).should.throw(/shebang/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             shebang: []
         }).should.throw(/shebang/);
     })
 
     it('should throw if bearer is not a valid string',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             bearer: 'token'
         }).should.not.throw(/bearer/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             bearer: 1
         }).should.throw(/bearer/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             bearer: {}
         }).should.throw(/bearer/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             bearer: []
         }).should.throw(/bearer/);
     })
 
     it('should throw if timeout is not a valid number',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             timeout: 1
         }).should.not.throw(/timeout/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             timeout: '1'
         }).should.throw(/timeout/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             timeout: {}
         }).should.throw(/timeout/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             timeout: []
         }).should.throw(/timeout/);
     })
 
     it('should throw if debug is not a function',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: function() {}
         }).should.not.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: false
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: true
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: ''
         }).should.throw(/debug/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: 'string'
         }).should.throw(/debug/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: 123
         }).should.throw(/debug/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: {}
         }).should.throw(/debug/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             debug: []
         }).should.throw(/debug/);
     })
 
     it('should throw if middlewares is not an array of functions',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: []
         }).should.not.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: true
         }).should.throw(/middlewares/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: function() {}
         }).should.throw(/middlewares/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: ''
         }).should.throw(/middlewares/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: 'string'
         }).should.throw(/middlewares/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: 123
         }).should.throw(/middlewares/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: {}
         }).should.throw(/middlewares/);
         // Arrays of
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ () => {} ]
         }).should.not.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ true ]
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ '' ]
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ 'string' ]
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ 123 ]
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             middlewares: [ {} ]
         }).should.throw();
     })
 
     it('should throw if env is not an object',  function() {
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: {}
         }).should.not.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: false
         }).should.throw(/env/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: true
         }).should.throw(/env/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: function() {}
         }).should.throw();
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: ''
         }).should.throw(/env/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: 'string'
         }).should.throw(/env/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: 123
         }).should.throw(/env/);
         build({
-            path: './commands',
+            path: COMMANDS_PATH,
             env: []
         }).should.throw(/env/);
     })
@@ -240,7 +242,7 @@ describe('Invoking a file', () => {
     describe('specifing path', () => {
         let app;
         before(function() {
-            app = dafuq({ path: './commands' });
+            app = dafuq({ path: COMMANDS_PATH });
         })
 
         it('should return success true after executing the command', (done) => {
@@ -375,7 +377,7 @@ describe('Invoking a file', () => {
 
         before(function() {
             app = dafuq({
-                path: './commands',
+                path: COMMANDS_PATH,
                 bearer: token
             });
         })
@@ -417,7 +419,7 @@ describe('Invoking a file', () => {
 
         before(function() {
             app = dafuq({
-                path: './commands',
+                path: COMMANDS_PATH,
                 timeout: 500
             });
         })
@@ -437,8 +439,8 @@ describe('Invoking a file', () => {
         let app;
         before(function() {
             app = dafuq({
-                path: './commands',
-                shebang: p.join(__dirname, 'node')
+                path: COMMANDS_PATH,
+                shebang: p.resolve(__dirname, 'fixtures/node')
             });
         })
 
@@ -458,7 +460,7 @@ describe('Invoking a file', () => {
             spy1 = sinon.stub().callsArg(2)
             spy2 = sinon.stub().callsArg(2)
             app = dafuq({
-                path: './commands',
+                path: COMMANDS_PATH,
                 middlewares: [ spy1, spy2 ]
             });
         })
@@ -518,7 +520,7 @@ describe('Invoking a file', () => {
 
         before(function() {
             app = dafuq({
-                path: './commands',
+                path: COMMANDS_PATH,
                 env: {
                     HELLO_NAME: 'Jhon'
                 }
@@ -551,12 +553,12 @@ describe('Arguments', () => {
 
     let app;
     before(function() {
-        app = dafuq({ path: './commands' });
+        app = dafuq({ path: COMMANDS_PATH });
     })
 
     it('should pass url params (from directories starting with colon) as command line arguments', (done) => {
         request(app)
-            .get('/hello/Jhon')
+            .get('/hello/colon/Jhon')
             .expect(200)
             .expect('Content-Type', /json/)
             .expect(res => res.body.result.should.be.equal("Hello Jhon"))
