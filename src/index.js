@@ -73,6 +73,25 @@ function assertIsDirectory(path) {
 const globPattern = '**/+(all|get|post|put|delete|head|options).*'
 
 /**
+ * Given a path string, returns an express route like representation of
+ * said path where:
+ * - Path parts separator will always be '/'
+ * - Any directory name wraped arround brakets will be transformed to
+ *     express param colon notation (e.g.: /{name}/ -> /:name/)
+ *
+ * @param  {String} filePath
+ * @return {String}
+ */
+function tansformPathToExpressRoute(filePath) {
+    return filePath
+        // Replace OS fs separators for the URI standard '/'
+        .replace(new RegExp(`[\\${path.sep}]`, 'g'), '/')
+        // Replace the parts of the path wrapped arround brackets
+        // with express colon dotation for params
+        .replace(/{([^\/]+?)}/g, ':$1')
+}
+
+/**
  * Returns the files at dir matching the given glob pattern
  *
  * @param  {String} dir The directory to search for files
@@ -444,7 +463,7 @@ export default function dafuq(config) {
     // Add all the files routes
     files.forEach(file => {
         const filePath = file.relative
-        const url = '/' + path.dirname(file.relative)
+        const url = '/' + tansformPathToExpressRoute(path.dirname(file.relative))
         const method = path.basename(filePath, path.extname(filePath)).toLowerCase()
         const middlewares = []
 

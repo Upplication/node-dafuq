@@ -28,6 +28,8 @@ Lets assume this is the structure of our commands directory.
 ```
 commands/
 ├── bye
+│   ├── {name}
+│   │   └── get.js
 │   └── get.js
 ├── hello
 │   ├── get.js
@@ -55,6 +57,7 @@ app.listen(3000)
 
 With the previous express server we would be serving the following routes:
 ```
+GET  /bye/:name
 GET  /bye
 GET  /hello/:name
 GET  /hello

@@ -565,6 +565,15 @@ describe('Arguments', () => {
             .end(done)
     })
 
+    it('should pass url params (from directories bracket wraped) as command line arguments', (done) => {
+        request(app)
+            .get('/hello/bracket/Jhon')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect(res => res.body.result.should.be.equal("Hello Jhon"))
+            .end(done)
+    })
+
     it('should pass query params as command line arguments', (done) => {
         request(app)
             .get('/hello')
